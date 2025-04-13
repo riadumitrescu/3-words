@@ -4,19 +4,32 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
+type PlayerData = {
+  name?: string;
+  words: string[];
+  createdAt: string;
+};
+
 export default function PlayPage() {
   const { id } = useParams();
   const [words, setWords] = useState<string[]>(['', '', '']);
   const [isComplete, setIsComplete] = useState(false);
-  const [userExists, setUserExists] = useState(false);
+  const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user exists in localStorage
+    // Check if player exists in localStorage
     if (typeof id === 'string') {
-      const userData = localStorage.getItem(id);
-      if (userData) {
-        setUserExists(true);
+      // Try to get data in new format first
+      const storedPlayerData = localStorage.getItem(`playerData-${id}`);
+      if (storedPlayerData) {
+        setPlayerData(JSON.parse(storedPlayerData));
+      } else {
+        // Fallback to old format if needed
+        const oldData = localStorage.getItem(id);
+        if (oldData) {
+          setPlayerData(JSON.parse(oldData));
+        }
       }
     }
   }, [id]);
@@ -46,7 +59,7 @@ export default function PlayPage() {
     }
   };
 
-  if (!userExists) {
+  if (!playerData) {
     return (
       <main className={styles.main}>
         <div className={styles.container}>
@@ -57,11 +70,13 @@ export default function PlayPage() {
     );
   }
 
+  const playerName = playerData.name || 'your friend';
+
   return (
     <main className={styles.main}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Describe your friend</h1>
-        <p className={styles.subtitle}>Enter 3 words you'd use to describe your friend.</p>
+        <h1 className={styles.title}>Describe {playerName}</h1>
+        <p className={styles.subtitle}>Enter 3 words you'd use to describe {playerName}.</p>
         
         <div className={styles.wordInputs}>
           {words.map((word, index) => (

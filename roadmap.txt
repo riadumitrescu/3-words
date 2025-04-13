@@ -9,45 +9,59 @@
    - Created clean, minimal design system with CSS variables
 
 2. Home Page
-   - Created a clean user interface for entering 3 self-descriptive words
-   - Implemented form validation to ensure all words are entered
+   - Created a clean user interface for entering the player's name
+   - Implemented input for 3 self-descriptive words
+   - Added form validation to ensure all fields are entered
    - Added localStorage saving with UUID generation
    - Implemented redirect to invite page after submission
 
 3. Invite Page
    - Created page to show the user their chosen words
+   - Personalized greeting with the player's name
    - Implemented invite link generation with copyable URL
    - Added responsive design for all screen sizes
    - Updated to use the `/play` route for friends to respond
 
 4. Play Page (For Friend Response)
    - Created a clean interface for friends to enter 3 descriptive words
-   - Implemented blind response system (friend can't see original user's words)
+   - Personalized the experience by showing friend who they're describing
+   - Implemented blind response system (friend can't see original player's words)
    - Added form validation to ensure all words are entered
-   - Stores friend's words in localStorage with the original user's ID
+   - Stores friend's words in localStorage with the player's ID
    - Redirects to results page on submission
 
 5. Results Page
-   - Shows comparison between self-perception and friend's perception
-   - Displays both sets of descriptive words
-   - Uses color-coding to differentiate between self and friend words
-   - Provides a score based on matching words (e.g., 2/3)
-   - Integrates with Google's Gemini API for word analysis
+   - Shows personalized comparison between self-perception and friend's perception
+   - Uses player's name in section headers for more emotional connection
+   - Displays both sets of descriptive words with clear labeling
+   - Provides a percentage match score for visual impact
+   - Integrates with Google's Gemini API for detailed word analysis
+   - Customized Gemini prompt to include name and specific analysis points
    - Displays an animated, thoughtful analysis of the word comparison
    - Features elegant animations for a memorable reveal experience
 
+6. Vercel Deployment Optimization
+   - Configured environment variables for Vercel
+   - Created vercel.json for deployment configuration
+   - Added build scripts optimized for Vercel
+   - Updated README with detailed deployment instructions
+   - Added deployment script for easier Vercel deployment
+   - Updated .gitignore for proper file exclusion
+   - Added Node.js version requirement for Vercel
+
 ## App Structure
-- `/` - Home page where users enter their 3 words
+- `/` - Home page where users enter their name and 3 self-descriptive words
 - `/invite/[userId]` - Page to invite friends after entering words
-- `/play/[id]` - Page for friends to enter their 3 words about the user
+- `/play/[id]` - Page for friends to enter their 3 words about the player
 - `/results/[id]` - Page showing comparison between self and friend words with AI analysis
 
 ## Technical Features
 - React with App Router
 - CSS Modules for styling
 - localStorage for data persistence
-- Gemini API integration for word analysis
+- Gemini API integration for personalized word analysis
 - Animations and transitions for enhanced user experience
+- Vercel-optimized configuration and deployment
 
 ## Next Steps
 1. Add support for multiple friend responses

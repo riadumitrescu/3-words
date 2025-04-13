@@ -1,0 +1,9 @@
+{
+  "buildDate": "@BUILD_DATE",
+  "version": "1.0.0",
+  "environment": "@NODE_ENV",
+  "dependencies": {
+    "next": "@NEXT_VERSION",
+    "react": "@REACT_VERSION"
+  }
+} 

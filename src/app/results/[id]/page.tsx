@@ -5,7 +5,13 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
 
-type UserData = {
+type PlayerData = {
+  name: string;
+  words: string[];
+  createdAt: string;
+};
+
+type FriendData = {
   words: string[];
   createdAt: string;
 };
@@ -15,8 +21,8 @@ const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
 export default function ResultsPage() {
   const { id } = useParams();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [friendData, setFriendData] = useState<UserData | null>(null);
+  const [playerData, setPlayerData] = useState<PlayerData | null>(null);
+  const [friendData, setFriendData] = useState<FriendData | null>(null);
   const [analysis, setAnalysis] = useState<string>('');
   const [score, setScore] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -24,10 +30,21 @@ export default function ResultsPage() {
 
   useEffect(() => {
     if (typeof id === 'string') {
-      // Get original user data
-      const storedUserData = localStorage.getItem(id);
-      if (storedUserData) {
-        setUserData(JSON.parse(storedUserData));
+      // Get player data
+      const storedPlayerData = localStorage.getItem(`playerData-${id}`);
+      if (storedPlayerData) {
+        setPlayerData(JSON.parse(storedPlayerData));
+      } else {
+        // Fallback to old format if needed
+        const oldData = localStorage.getItem(id);
+        if (oldData) {
+          const parsedData = JSON.parse(oldData);
+          setPlayerData({
+            name: 'You', // Default name if not provided
+            words: parsedData.words,
+            createdAt: parsedData.createdAt
+          });
+        }
       }
 
       // Get friend's description data
@@ -41,29 +58,30 @@ export default function ResultsPage() {
   useEffect(() => {
     // Generate analysis when both data sets are available
     const analyzeWords = async () => {
-      if (!userData || !friendData) return;
+      if (!playerData || !friendData) return;
       
       try {
         setLoading(true);
         
         // Calculate matching words score
-        const matchCount = userData.words.filter(word => 
+        const matchCount = playerData.words.filter(word => 
           friendData.words.some(friendWord => 
             friendWord.toLowerCase() === word.toLowerCase()
           )
         ).length;
         
-        setScore(`${matchCount}/3`);
+        const matchPercentage = Math.round((matchCount / 3) * 100);
+        setScore(`${matchPercentage}`);
         
         // Send to Gemini API for analysis
         const prompt = `
-        I have two sets of words:
-        
-        Self-description: "${userData.words.join('", "')}"
-        Friend's description: "${friendData.words.join('", "')}"
-        
-        What's aligned? What's different? What does it say about how this person is seen vs. how they see themselves? 
-        Keep your analysis thoughtful but concise (max 4 paragraphs).
+        A person named ${playerData.name} described themselves with: "${playerData.words.join('", "')}"
+        A friend described them with: "${friendData.words.join('", "')}"
+        Compare the sets.
+        - List exact and soft matches
+        - Describe what this says about self-perception vs. how others see them
+        - Give a match score from 0–100
+        - Explain the score in 2 sentences
         `;
         
         const response = await fetch(
@@ -100,9 +118,9 @@ export default function ResultsPage() {
     };
     
     analyzeWords();
-  }, [userData, friendData]);
+  }, [playerData, friendData]);
 
-  if (!userData || !friendData) {
+  if (!playerData || !friendData) {
     return (
       <main className={styles.main}>
         <div className={styles.container}>
@@ -121,13 +139,15 @@ export default function ResultsPage() {
   return (
     <main className={styles.main}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Words Compared</h1>
+        <h1 className={styles.title}>Word Comparison</h1>
         
         <div className={styles.resultsContainer}>
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>How you described yourself:</h2>
+            <h2 className={styles.sectionTitle}>
+              How {playerData.name === 'You' ? 'you see yourself' : `${playerData.name} sees ${playerData.name === 'You' ? 'themself' : 'themselves'}`}
+            </h2>
             <div className={styles.wordsList}>
-              {userData.words.map((word, index) => (
+              {playerData.words.map((word, index) => (
                 <div key={`self-${index}`} className={styles.wordChip}>
                   {word}
                 </div>
@@ -136,7 +156,9 @@ export default function ResultsPage() {
           </div>
           
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>How your friend sees you:</h2>
+            <h2 className={styles.sectionTitle}>
+              How a friend sees {playerData.name === 'You' ? 'you' : playerData.name}
+            </h2>
             <div className={styles.wordsList}>
               {friendData.words.map((word, index) => (
                 <div key={`friend-${index}`} className={styles.wordChip}>
@@ -149,8 +171,8 @@ export default function ResultsPage() {
           {score && (
             <div className={styles.scoreSection}>
               <div className={styles.scoreBox}>
-                <span className={styles.scoreLabel}>Word Match:</span>
-                <span className={styles.scoreValue}>{score}</span>
+                <span className={styles.scoreLabel}>Match Score:</span>
+                <span className={styles.scoreValue}>{score}<span className={styles.scorePercent}>%</span></span>
               </div>
             </div>
           )}
@@ -174,7 +196,7 @@ export default function ResultsPage() {
             </div>
           ) : (
             <>
-              <h2 className={styles.analysisTitle}>Word Analysis</h2>
+              <h2 className={styles.analysisTitle}>Perception Analysis</h2>
               <div className={styles.analysisText}>
                 {analysis.split('\n\n').map((paragraph, i) => (
                   <p key={i}>{paragraph}</p>

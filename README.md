@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 3 Words - A Personality Comparison Game
+
+A clean, minimal web app that lets users and their friends describe each other with 3 words, then uses AI to analyze the comparison.
+
+## Features
+
+- Simple, clean design with an emotional tone
+- Personalized user experience showing names
+- AI-powered analysis using Google's Gemini API
+- Animated reveal of comparison results
+- Responsive design for all devices
+- Completely client-side with localStorage for data persistence
 
 ## Getting Started
 
-First, run the development server:
+1. Clone this repository
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create a `.env.local` file with your Gemini API key:
+
+```
+NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here
+```
+
+4. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploying to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Option 1: One-Click Deploy
 
-## Learn More
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyourusername%2F3-words)
 
-To learn more about Next.js, take a look at the following resources:
+### Option 2: Manual Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push your code to a GitHub repository
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+3. Click "New Project" and import your repository
+4. Configure project:
+   - Framework Preset: Next.js
+   - Root Directory: ./
+   - Build Command: npm run build
+   - Output Directory: .next
+5. Add Environment Variable:
+   - Name: `NEXT_PUBLIC_GEMINI_API_KEY`
+   - Value: Your Gemini API key
+6. Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Environment Variables
 
-## Deploy on Vercel
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_GEMINI_API_KEY` | Your Google Gemini API key |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## App Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/` - Home page where users enter their name and 3 words
+- `/invite/[userId]` - Page for inviting friends
+- `/play/[id]` - Page for friends to enter their 3 words
+- `/results/[id]` - Page showing AI analysis of the comparison
+
+## Tech Stack
+
+- Next.js with App Router
+- React 
+- CSS Modules
+- Google Gemini API
+- LocalStorage for data persistence

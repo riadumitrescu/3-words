@@ -5,17 +5,30 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
 
+type PlayerData = {
+  name?: string;
+  words: string[];
+  createdAt: string;
+};
+
 export default function InvitePage() {
   const { userId } = useParams();
-  const [userData, setUserData] = useState<{ words: string[] } | null>(null);
+  const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const [inviteLink, setInviteLink] = useState('');
 
   useEffect(() => {
-    // Get user data from localStorage
+    // Get player data from localStorage
     if (typeof userId === 'string') {
-      const storedData = localStorage.getItem(userId);
-      if (storedData) {
-        setUserData(JSON.parse(storedData));
+      // Try to get data in new format first
+      const storedPlayerData = localStorage.getItem(`playerData-${userId}`);
+      if (storedPlayerData) {
+        setPlayerData(JSON.parse(storedPlayerData));
+      } else {
+        // Fallback to old format if needed
+        const oldData = localStorage.getItem(userId);
+        if (oldData) {
+          setPlayerData(JSON.parse(oldData));
+        }
       }
       
       // Generate invite link
@@ -29,7 +42,7 @@ export default function InvitePage() {
     alert('Link copied to clipboard!');
   };
 
-  if (!userData) {
+  if (!playerData) {
     return (
       <main className={styles.main}>
         <div className={styles.container}>
@@ -43,16 +56,18 @@ export default function InvitePage() {
     );
   }
 
+  const playerName = playerData.name || 'You';
+
   return (
     <main className={styles.main}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Thank You!</h1>
+        <h1 className={styles.title}>Thank You, {playerName}!</h1>
         <p className={styles.subtitle}>
           You've described yourself with these three words:
         </p>
         
         <div className={styles.wordsList}>
-          {userData.words.map((word, index) => (
+          {playerData.words.map((word, index) => (
             <div key={index} className={styles.wordChip}>
               {word}
             </div>

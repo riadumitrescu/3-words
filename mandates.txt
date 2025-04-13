@@ -4,26 +4,29 @@
 - Use React with App Router ✅
 - Use plain CSS (no Tailwind) ✅
 - Use localStorage for data storage ✅
+- Deploy efficiently to Vercel ✅
 
 ## First Screen Requirements
+- Collect the player's name ✅
 - Let users input 3 words they believe describe themselves ✅
-- Show a button to continue after entering all 3 words ✅
+- Show a button to continue after entering all required fields ✅
 - Generate a unique user ID (UUID) on submission ✅
-- Save the words to localStorage under that ID ✅
+- Save the player data to localStorage with their name ✅
 - Redirect to invite page after submission ✅
 
 ## Play Screen Requirements
-- Prompt visitors with "Enter 3 words you'd use to describe your friend" ✅
+- Prompt visitors with "Enter 3 words you'd use to describe [name]" ✅
 - Provide 3 input fields ✅
 - Save the friend's words in localStorage as `friendWords-[id]` ✅
 - On submit, navigate to `/results/[id]` ✅
 - Keep the experience blind (no visibility of original user's words) ✅
 
 ## Results Screen Requirements
-- Load player's words from localStorage ✅
+- Load player's data with name from localStorage ✅
 - Load friend's words from localStorage ✅
-- Send both sets to Gemini API for analysis ✅
-- Show a score based on matching words ✅
+- Show name-based perspective headers ✅
+- Send both sets to Gemini API for personalized analysis ✅
+- Show a percentage match score ✅
 - Display Gemini's analysis in a styled card ✅
 - Use fade-in animations for the analysis reveal ✅
 - Make design clean, readable, and emotional ✅
@@ -42,4 +45,10 @@
 - Simple and clean code ✅
 - No extra frameworks beyond React ✅
 - CSS modules for styling ✅
-- Secure API key handling ✅ 
+- Secure API key handling ✅
+
+## Deployment Requirements
+- Proper environment variable configuration ✅
+- Vercel-optimized configuration files ✅
+- Clear deployment documentation ✅
+- Production-ready build settings ✅ 

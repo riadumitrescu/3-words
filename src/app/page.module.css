@@ -103,4 +103,47 @@
   .wordInput {
     font-size: 1.1rem;
   }
+}
+
+.nameInput {
+  width: 100%;
+  margin-bottom: var(--space-lg);
+  text-align: left;
+}
+
+.nameLabel {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 1.1rem;
+  color: var(--color-muted);
+}
+
+.nameField {
+  width: 100%;
+  padding: var(--space-sm);
+  font-size: 1.25rem;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  transition: border-color 0.3s ease;
+}
+
+.nameField:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.nameField::placeholder {
+  color: var(--color-muted);
+  opacity: 0.6;
+}
+
+.wordsTitle {
+  width: 100%;
+  text-align: left;
+  font-size: 1.4rem;
+  margin-bottom: var(--space-md);
+  color: var(--color-text);
+  font-weight: normal;
 } 
