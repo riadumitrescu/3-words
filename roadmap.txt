@@ -31,16 +31,28 @@
    - Shows comparison between self-perception and friend's perception
    - Displays both sets of descriptive words
    - Uses color-coding to differentiate between self and friend words
-   - Provides option to start over
+   - Provides a score based on matching words (e.g., 2/3)
+   - Integrates with Google's Gemini API for word analysis
+   - Displays an animated, thoughtful analysis of the word comparison
+   - Features elegant animations for a memorable reveal experience
 
 ## App Structure
 - `/` - Home page where users enter their 3 words
 - `/invite/[userId]` - Page to invite friends after entering words
 - `/play/[id]` - Page for friends to enter their 3 words about the user
-- `/results/[id]` - Page showing comparison between self and friend words
+- `/results/[id]` - Page showing comparison between self and friend words with AI analysis
+
+## Technical Features
+- React with App Router
+- CSS Modules for styling
+- localStorage for data persistence
+- Gemini API integration for word analysis
+- Animations and transitions for enhanced user experience
 
 ## Next Steps
 1. Add support for multiple friend responses
 2. Implement data visualization of word relationships
 3. Add user authentication for more persistent storage
-4. Create a more detailed results analysis 
+4. Create a more detailed results analysis
+5. Add social sharing capabilities
+6. Implement a gallery view of past results 

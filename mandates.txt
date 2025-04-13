@@ -19,6 +19,15 @@
 - On submit, navigate to `/results/[id]` ✅
 - Keep the experience blind (no visibility of original user's words) ✅
 
+## Results Screen Requirements
+- Load player's words from localStorage ✅
+- Load friend's words from localStorage ✅
+- Send both sets to Gemini API for analysis ✅
+- Show a score based on matching words ✅
+- Display Gemini's analysis in a styled card ✅
+- Use fade-in animations for the analysis reveal ✅
+- Make design clean, readable, and emotional ✅
+
 ## Design Mandates
 - Clean, minimal styling ✅
 - Nothing too bright or busy ✅
@@ -27,8 +36,10 @@
 - Emotional tone ✅
 - Use serif fonts for personal/reflective feel ✅
 - Consistent design language across all screens ✅
+- Use animations to make the experience special ✅
 
 ## Code Quality
 - Simple and clean code ✅
 - No extra frameworks beyond React ✅
-- CSS modules for styling ✅ 
+- CSS modules for styling ✅
+- Secure API key handling ✅ 
