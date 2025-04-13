@@ -1,0 +1,123 @@
+.main {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+}
+
+.container {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.title {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-lg);
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-lg);
+  color: var(--color-muted);
+  max-width: 80%;
+}
+
+.resultsContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-lg);
+}
+
+.section {
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-md);
+  color: var(--color-text);
+}
+
+.wordsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.wordChip {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: 50px;
+  font-size: 1.2rem;
+  min-width: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section:nth-child(1) .wordChip {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.section:nth-child(2) .wordChip {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.actions {
+  margin-top: var(--space-lg);
+}
+
+.button {
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 1.1rem;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.button:hover {
+  background-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+/* Media query for mobile responsiveness */
+@media (max-width: 600px) {
+  .title {
+    font-size: 2rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+    max-width: 90%;
+  }
+  
+  .sectionTitle {
+    font-size: 1.3rem;
+  }
+  
+  .wordChip {
+    font-size: 1rem;
+    min-width: 80px;
+  }
+} 

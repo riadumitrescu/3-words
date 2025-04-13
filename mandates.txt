@@ -1,0 +1,34 @@
+# 3 Words - Design and Development Mandates
+
+## Core Requirements
+- Use React with App Router ✅
+- Use plain CSS (no Tailwind) ✅
+- Use localStorage for data storage ✅
+
+## First Screen Requirements
+- Let users input 3 words they believe describe themselves ✅
+- Show a button to continue after entering all 3 words ✅
+- Generate a unique user ID (UUID) on submission ✅
+- Save the words to localStorage under that ID ✅
+- Redirect to invite page after submission ✅
+
+## Play Screen Requirements
+- Prompt visitors with "Enter 3 words you'd use to describe your friend" ✅
+- Provide 3 input fields ✅
+- Save the friend's words in localStorage as `friendWords-[id]` ✅
+- On submit, navigate to `/results/[id]` ✅
+- Keep the experience blind (no visibility of original user's words) ✅
+
+## Design Mandates
+- Clean, minimal styling ✅
+- Nothing too bright or busy ✅
+- Mobile-friendly layout ✅
+- Big text with nice spacing ✅
+- Emotional tone ✅
+- Use serif fonts for personal/reflective feel ✅
+- Consistent design language across all screens ✅
+
+## Code Quality
+- Simple and clean code ✅
+- No extra frameworks beyond React ✅
+- CSS modules for styling ✅ 

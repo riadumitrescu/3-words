@@ -1,0 +1,46 @@
+# 3 Words - Personality Game Roadmap
+
+## Changes Made
+
+1. Initial Setup
+   - Created Next.js app with React and App Router
+   - Removed Tailwind CSS in favor of plain CSS
+   - Set up global styles with a soft, personal aesthetic
+   - Created clean, minimal design system with CSS variables
+
+2. Home Page
+   - Created a clean user interface for entering 3 self-descriptive words
+   - Implemented form validation to ensure all words are entered
+   - Added localStorage saving with UUID generation
+   - Implemented redirect to invite page after submission
+
+3. Invite Page
+   - Created page to show the user their chosen words
+   - Implemented invite link generation with copyable URL
+   - Added responsive design for all screen sizes
+   - Updated to use the `/play` route for friends to respond
+
+4. Play Page (For Friend Response)
+   - Created a clean interface for friends to enter 3 descriptive words
+   - Implemented blind response system (friend can't see original user's words)
+   - Added form validation to ensure all words are entered
+   - Stores friend's words in localStorage with the original user's ID
+   - Redirects to results page on submission
+
+5. Results Page
+   - Shows comparison between self-perception and friend's perception
+   - Displays both sets of descriptive words
+   - Uses color-coding to differentiate between self and friend words
+   - Provides option to start over
+
+## App Structure
+- `/` - Home page where users enter their 3 words
+- `/invite/[userId]` - Page to invite friends after entering words
+- `/play/[id]` - Page for friends to enter their 3 words about the user
+- `/results/[id]` - Page showing comparison between self and friend words
+
+## Next Steps
+1. Add support for multiple friend responses
+2. Implement data visualization of word relationships
+3. Add user authentication for more persistent storage
+4. Create a more detailed results analysis 
