@@ -20,13 +20,7 @@ A clean, minimal web app that lets users and their friends describe each other w
 npm install
 ```
 
-3. Create a `.env.local` file with your Gemini API key:
-
-```
-NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here
-```
-
-4. Run the development server:
+3. Run the development server:
 
 ```bash
 npm run dev
@@ -50,16 +44,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
    - Root Directory: ./
    - Build Command: npm run build
    - Output Directory: .next
-5. Add Environment Variable:
-   - Name: `NEXT_PUBLIC_GEMINI_API_KEY`
-   - Value: Your Gemini API key
-6. Deploy
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_GEMINI_API_KEY` | Your Google Gemini API key |
+5. Deploy
 
 ## App Structure
 
@@ -73,5 +58,5 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 - Next.js with App Router
 - React 
 - CSS Modules
-- Google Gemini API
+- Google Gemini API (with hardcoded public API key)
 - LocalStorage for data persistence

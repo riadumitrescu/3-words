@@ -69,6 +69,7 @@
    - Enhanced Gemini API prompt for more insightful psychological analysis
    - Upgraded fallback analysis with semantic word matching and personalized insights
    - Added suppressHydrationWarning to RootLayout to prevent browser extension conflicts
+   - Removed environment variable reference from vercel.json for fully public key
 
 ## App Structure
 - `/` - Home page where users enter their name and 3 self-descriptive words
