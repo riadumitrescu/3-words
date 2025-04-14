@@ -1,0 +1,21 @@
+-- Follow these steps on the Supabase dashboard to create the reflections table:
+
+1. Navigate to the Supabase dashboard and select your project
+2. Go to the 'Table Editor' section
+3. Click 'New Table' and enter 'reflections' as the name
+4. Add the following columns:
+   - id: type uuid, primary key, default: uuid_generate_v4()
+   - user_id: type text, not null
+   - friend_name: type text, not null
+   - friend_words: type text[], not null
+   - created_at: type timestamp with time zone, default: now()
+5. Enable Row Level Security (RLS) by toggling it on
+6. Create a new policy by clicking 'New Policy'
+7. Use the following SQL for your policy:
+   create policy "Allow insert and read"
+   on reflections
+   for all
+   using (true)
+   with check (true);
+
+This will resolve the 'relation public.reflections does not exist' error.

@@ -4,32 +4,50 @@
 
 // ... existing code ...
 
-7. UI/UX and Technical Improvements
-   - Fixed hydration errors across all pages with client-side rendering controls
-   - Added mounted state pattern to prevent server/client HTML mismatches
-   - Enhanced error handling for Gemini API requests
-   - Added detailed console logging for API requests and responses
-   - Improved score explanation text on results page for better user understanding
-   - Added responsive text styling for score explanation
-   - Optimized component rendering to prevent flash of unstyled content
-   - Updated Gemini API endpoint from v1 to v1beta to fix 404 errors
-   - Hardcoded public Gemini API key directly in code for easier deployment
-   - Improved user-facing error messages to be more friendly
-   - Added smart fallback for API failures with local word comparison
-   - Implemented graceful degradation when Gemini API is unavailable
-   - Updated to use Gemini 1.5 Flash model with a valid API key
-   - Removed unused Tailwind CSS import from globals.css to fix build error
-   - Enhanced Gemini API prompt for more insightful psychological analysis
-   - Upgraded fallback analysis with semantic word matching and personalized insights
-   - Added suppressHydrationWarning to RootLayout to prevent browser extension conflicts
-   - Removed environment variable reference from vercel.json for fully public key
-   - Added advanced model fallback system with multiple API attempts
-   - Enhanced debug logging for API requests to improve troubleshooting
-   - Created variable constants for API endpoints to improve maintainability
-   - Added a server-side API route to proxy Gemini requests and bypass CORS issues
-   - Shortened the Gemini prompt for better reliability on production deployments
-   - Added direct API test within the client component to diagnose connectivity issues
-   - Implemented a comprehensive fallback chain: client → alt model → server → local
+8. UI/UX Enhancements for Personalization
+   - Updated the play page to collect friend's name for more personalized results
+   - Added improved formatting for analysis text to enhance readability
+   - Added line breaks in appropriate places to make analysis more scannable
+   - Updated results display to show friend's name instead of generic "friend" label
+   - Maintained consistent styling and design language across all pages
+   - Improved data structure to store friend's name with their selected words
+   - Enhanced word comparison display with personalized headers
+   - Standardized input field styling across all forms for better UI consistency
+   - Refined Gemini API prompt with precise weighting system for word comparisons
+   - Added detailed criteria for word matching: exact matches (33%), similar meanings (15-20%), distant connections (5-10%)
+   - Implemented friend's name in API prompt to generate more personalized analysis
+
+9. Error Handling Improvements
+   - Implemented robust error handling for Gemini API requests in results page
+   - Added try-catch blocks around API requests to prevent application crashes
+   - Added detailed error logging with status codes and error messages
+   - Improved user experience by providing clearer feedback when API errors occur
+   - Fixed potential hydration errors related to API response processing
+   - Enhanced error detection with response status checking for better debugging
+   - Added specific error message formatting to isolate API response failures
+   - Enhanced Gemini API route with comprehensive HTTP status code handling
+   - Added detailed error responses with specific messages for different error scenarios (400, 401, 403, 404, 429, 500+)
+   - Improved client error messages with more context about API failures
+   - Implemented structured error response objects with message, status code, and details
+   - Added error response content from Gemini API for better debugging
+
+10. Database Integration with Supabase
+    - Connected to Supabase for persistent storage of friend reflections
+    - Migrated from 'reflections' to 'words' table to store friend submissions
+    - Enhanced data structure with UUID primary keys for better data integrity
+    - Updated play page to save friend's name and chosen words to Supabase
+    - Implemented loading and display of all past friend entries on the results page
+    - Added responsive grid layout for displaying past reflections
+    - Enhanced UI with loading indicators during database operations
+    - Improved error handling for Supabase database operations
+    - Maintained localStorage as fallback storage for offline functionality
+    - Sorted reflections by created date for chronological display
+    - Styled reflection cards to match the app's clean aesthetic
+    - Fixed Row Level Security policy to allow only inserts and reads on the words table
+    - Implemented more restrictive policy configuration for enhanced database security
+    - Added success feedback on successful data insertion
+
+11. Added localStorage fallback for reflections storage to ensure data persistence when offline or if Supabase is unavailable
 
 ## App Structure
 - `/` - Home page where users enter their name and 3 self-descriptive words
@@ -37,6 +55,4 @@
 - `/play/[id]` - Page for friends to enter their 3 words about the player
 - `/results/[id]` - Page showing comparison between self and friend words with AI analysis
 - `/api/gemini` - Server-side API route that proxies requests to Gemini API
-
-## Technical Features
-// ... existing code ... 
+- `/lib/supabase.ts` - Supabase client connection for database operations 

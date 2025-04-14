@@ -3,12 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
+import supabase from '@/lib/supabase';
 
 export default function Home() {
   const [name, setName] = useState('');
   const [words, setWords] = useState<string[]>(['', '', '']);
   const [isComplete, setIsComplete] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   // Set mounted state to avoid hydration errors
@@ -29,29 +32,79 @@ export default function Home() {
     setWords(newWords);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!isComplete) return;
+    
+    setIsSubmitting(true);
+    setError(null);
+    
     try {
       // Generate a unique ID
       const userId = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
       
       // Save to localStorage with new format
       localStorage.setItem(`playerData-${userId}`, JSON.stringify({
         name,
         words,
-        createdAt: new Date().toISOString()
+        createdAt
       }));
       
       // Also save in original format for backward compatibility
       localStorage.setItem(userId, JSON.stringify({
         words,
-        createdAt: new Date().toISOString()
+        createdAt
       }));
+      
+      // Try to save the player data to Supabase
+      try {
+        console.log('Saving player data to Supabase:', { user_id: userId, friend_name: name, friend_words: words });
+        
+        // First, check if the table exists
+        const { error: testError } = await supabase
+          .from('words')
+          .select('count')
+          .limit(1);
+        
+        if (testError && testError.message.includes('does not exist')) {
+          console.error('Table does not exist:', testError.message);
+          // Continue with navigation even if Supabase save fails
+        } else {
+          // Save player's own words to Supabase - ONLY include required fields
+          const { error } = await supabase
+            .from('words')
+            .insert([
+              { 
+                user_id: userId, 
+                friend_name: `${name} (Self)`, // Mark this as the player's own words
+                friend_words: words
+                // Do NOT include id or created_at - let Supabase generate these
+              }
+            ]);
+            
+          if (error) {
+            console.error('Error saving player data to Supabase:', error.message);
+            
+            if (error.message.includes('violates row-level security policy')) {
+              console.warn('Row security policy error. Please run the SQL command to fix RLS policies.');
+              // Continue with navigation even if Supabase save fails
+            }
+          } else {
+            console.log('✅ Successfully saved player data to Supabase');
+          }
+        }
+      } catch (supabaseError) {
+        console.error('Supabase error:', supabaseError);
+        // Continue with navigation even if Supabase save fails
+      }
       
       // Redirect to invite page
       router.push(`/invite/${userId}`);
     } catch (err) {
       console.error('Error saving data:', err);
-      alert('There was an error saving your data. Please try again.');
+      setError('There was an error saving your data. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -101,14 +154,16 @@ export default function Home() {
           ))}
         </div>
         
+        {error && <p className={styles.errorMessage}>{error}</p>}
+        
         <button 
-          className={`${styles.continueButton} ${!isComplete ? styles.buttonDisabled : ''}`}
+          className={`${styles.continueButton} ${!isComplete || isSubmitting ? styles.buttonDisabled : ''}`}
           onClick={handleSubmit}
-          disabled={!isComplete}
+          disabled={!isComplete || isSubmitting}
         >
-          Continue
+          {isSubmitting ? 'Saving...' : 'Continue'}
         </button>
-    </div>
+      </div>
     </main>
   );
 }

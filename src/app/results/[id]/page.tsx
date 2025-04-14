@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
+import supabase from '@/lib/supabase';
 
 type PlayerData = {
   name: string;
@@ -12,8 +13,18 @@ type PlayerData = {
 };
 
 type FriendData = {
+  name?: string;
   words: string[];
   createdAt: string;
+};
+
+// This type represents entries in the words table
+type WordEntry = {
+  id: string; // UUID from Supabase
+  user_id: string;
+  friend_name: string;
+  friend_words: string[];
+  created_at: string;
 };
 
 // API key hardcoded for public use - This is intentionally exposed for educational purposes
@@ -25,12 +36,15 @@ export default function ResultsPage() {
   const { id } = useParams();
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const [friendData, setFriendData] = useState<FriendData | null>(null);
+  const [pastEntries, setPastEntries] = useState<WordEntry[]>([]);
   const [analysis, setAnalysis] = useState<string>('');
   const [score, setScore] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingEntries, setLoadingEntries] = useState(true);
   const [mounted, setMounted] = useState(false);
   const analysisRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Set mounted state to ensure we only run client-side code after mounting
   useEffect(() => {
@@ -74,6 +88,70 @@ export default function ResultsPage() {
         console.error('Error parsing friendData:', e);
       }
     }
+
+    // Fetch past entries from Supabase
+    const fetchPastEntries = async () => {
+      setLoadingEntries(true);
+      try {
+        console.log('Fetching words for user_id:', id);
+        
+        // First check if the table exists
+        try {
+          const { error: tableCheckError } = await supabase
+            .from('words')
+            .select('count')
+            .limit(1);
+          
+          if (tableCheckError && tableCheckError.message.includes('does not exist')) {
+            console.error('Words table does not exist:', tableCheckError.message);
+            setPastEntries([]);
+            setLoadingEntries(false);
+            return;
+          }
+        } catch (checkError) {
+          console.error('Error checking table:', checkError);
+        }
+        
+        // Fetch the data
+        const { data, error } = await supabase
+          .from('words')
+          .select('*')
+          .eq('user_id', id)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching words:', error.message);
+          
+          // Try from localStorage if Supabase fails
+          const localEntriesString = localStorage.getItem(`allWords-${id}`);
+          if (localEntriesString) {
+            try {
+              const localEntries = JSON.parse(localEntriesString);
+              console.log('Using cached entries from localStorage:', localEntries.length);
+              setPastEntries(localEntries);
+            } catch (parseError) {
+              console.error('Error parsing localStorage entries:', parseError);
+              setPastEntries([]);
+            }
+          } else {
+            setPastEntries([]);
+          }
+        } else if (data) {
+          console.log('Words data from Supabase:', data);
+          setPastEntries(data);
+        } else {
+          console.log('No words data returned from Supabase');
+          setPastEntries([]);
+        }
+      } catch (supabaseError) {
+        console.error('Supabase fetch error:', supabaseError);
+        setPastEntries([]);
+      } finally {
+        setLoadingEntries(false);
+      }
+    };
+
+    fetchPastEntries();
   }, [id, mounted]);
 
   useEffect(() => {
@@ -95,14 +173,24 @@ export default function ResultsPage() {
         // Send to Gemini API for analysis with updated prompt
         // Shorter prompt for better reliability
         const prompt = `
-        A person named ${playerData.name} described themselves as: [${playerData.words.join(', ')}]. 
-        Their friend described them as: [${friendData.words.join(', ')}]. 
+        A person named ${playerData.name} described themselves with these 3 words: [${playerData.words.join(', ')}].
+        Their friend ${friendData.name || 'a friend'} described them with these 3 words: [${friendData.words.join(', ')}].
         
-        What does this tell us about the difference between self-perception and external perception?
-        Find connections between similar words. Analyze what this reveals about how ${playerData.name} sees themselves vs how others see them.
+        Please analyze these word sets with these specific considerations:
         
-        Make your response engaging and insightful.
-        End with: Score: XX% (where XX is your assessment of alignment from 0-100).
+        1. EXACT MATCHES (highest weight): Identify any exact same words between the sets (exact spelling matches should be weighted very heavily, worth 33% each).
+        
+        2. SIMILAR MEANINGS (medium weight): Identify words that aren't identical but share similar meanings (e.g., "intelligent" and "smart", "kind" and "caring"). These should count as partial matches (worth about 15-20% each).
+        
+        3. DISTANT RELATIONSHIPS (low weight): Identify any subtle or distant semantic connections between non-matching words (worth only 5-10% each).
+        
+        4. COMPLETE MISMATCHES: Identify words with no relationship whatsoever (worth 0%).
+        
+        Analyze what these similarities and differences reveal about ${playerData.name}'s self-perception versus how others perceive them. What might explain any gaps? 
+        
+        Make your analysis thoughtful but concise (3-4 short paragraphs maximum).
+        
+        End with: "Score: X%" where X is the total percentage alignment based on the weighting system above.
         `;
 
         console.log('🔍 Sending request to Gemini API with prompt length:', prompt.length);
@@ -291,7 +379,16 @@ export default function ResultsPage() {
       // Extract the reflection part (everything before "Score:")
       const scoreIndex = text.lastIndexOf('Score:');
       if (scoreIndex !== -1) {
-        setAnalysis(text.substring(0, scoreIndex).trim());
+        // Format the analysis text to be more concise and readable
+        let analysisText = text.substring(0, scoreIndex).trim();
+        
+        // Break long paragraphs into shorter ones for better readability
+        analysisText = analysisText
+          .replace(/\.\s+/g, '.\n\n') // Add line breaks after periods
+          .replace(/\n\n\n+/g, '\n\n') // Remove excess line breaks
+          .replace(/\n\n([^A-Z])/g, '\n\n$1'); // Ensure proper capitalization
+        
+        setAnalysis(analysisText);
         
         // Extract score from the text (looking for "Score: XX%" pattern)
         const scoreMatch = text.substring(scoreIndex).match(/Score:\s*(\d+)%?/i);
@@ -308,7 +405,13 @@ export default function ResultsPage() {
         }
       } else {
         // If "Score:" text not found, use the whole response as analysis
-        setAnalysis(text);
+        // Format the text for better readability
+        const analysisText = text
+          .replace(/\.\s+/g, '.\n\n') // Add line breaks after periods
+          .replace(/\n\n\n+/g, '\n\n') // Remove excess line breaks
+          .replace(/\n\n([^A-Z])/g, '\n\n$1'); // Ensure proper capitalization
+        
+        setAnalysis(analysisText);
         calculateBasicScore();
       }
     };
@@ -465,7 +568,7 @@ export default function ResultsPage() {
         <div className={styles.container}>
           <h1 className={styles.title}>Data not found</h1>
           <p className={styles.subtitle}>
-            We couldn't find the necessary data. The link might be invalid or expired.
+            We couldn&apos;t find the necessary data. The link might be invalid or expired.
           </p>
           <Link href="/" className={styles.button}>
             Back to Home
@@ -494,7 +597,7 @@ export default function ResultsPage() {
           
           <div className={styles.wordColumn}>
             <h2 className={styles.wordHeader}>
-              Friend&apos;s Words
+              {friendData.name ? `${friendData.name}'s View` : `Friend's Words`}
             </h2>
             {friendData.words.map((word, index) => (
               <div key={`friend-${index}`} className={`${styles.wordChip} ${styles.friendWord}`}>
@@ -507,7 +610,9 @@ export default function ResultsPage() {
         {score && !loading && (
           <div className={styles.scoreContainer}>
             <div className={styles.bigScore}>
-              <span>This friend sees {playerData.name === 'You' ? 'you' : playerData.name}</span>
+              <span>
+                {friendData.name ? friendData.name : 'This friend'} sees {playerData.name === 'You' ? 'you' : playerData.name}
+              </span>
               <div className={styles.scoreValue}>{score}<span className={styles.scorePercent}>%</span></div>
               <span>as {playerData.name === 'You' ? 'you see yourself' : `${playerData.name} sees ${playerData.name === 'You' ? 'themself' : 'themselves'}`}</span>
             </div>
@@ -539,6 +644,38 @@ export default function ResultsPage() {
                 ))}
               </div>
             </>
+          )}
+        </div>
+        
+        {/* Past Reflections Section */}
+        <div className={styles.pastReflectionsSection}>
+          <h2 className={styles.pastReflectionsTitle}>Past Reflections</h2>
+          
+          {loadingEntries ? (
+            <div className={styles.loadingContainer}>
+              <div className={styles.loadingSpinner}></div>
+              <p>Loading past reflections...</p>
+            </div>
+          ) : pastEntries.length > 0 ? (
+            <div className={styles.reflectionsList}>
+              {pastEntries.map((entry) => (
+                <div key={entry.id} className={styles.reflectionCard}>
+                  <h3 className={styles.reflectionName}>{entry.friend_name}</h3>
+                  <div className={styles.reflectionWords}>
+                    {entry.friend_words.map((word, idx) => (
+                      <div key={idx} className={styles.reflectionWordChip}>
+                        {word}
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.reflectionDate}>
+                    {new Date(entry.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.noReflections}>No past reflections yet.</p>
           )}
         </div>
         
