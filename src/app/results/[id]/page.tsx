@@ -18,9 +18,9 @@ type FriendData = {
 
 // API key hardcoded for public use - This is intentionally exposed for educational purposes
 // In a production environment, you would use environment variables (.env.local) and server-side API calls
-const GEMINI_API_KEY = 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
-// Update to gemini-1.0-pro model which should be more available
-const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent';
+// These variables are used in the server-side API route now
+// const GEMINI_API_KEY = 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
+// const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -299,7 +299,7 @@ export default function ResultsPage() {
       if (similarPairs.length > 0 && similarMatchCount > 0) {
         analysisText += `There are interesting connections between their word choices. `;
         
-        similarPairs.slice(0, similarMatchCount).forEach((pair, index) => {
+        similarPairs.slice(0, similarMatchCount).forEach((pair) => {
           analysisText += `${playerName}'s word "${pair.playerWord}" and their friend's word "${pair.friendWord}" share similar meanings, suggesting alignment in perception though expressed differently. `;
         });
       }
@@ -357,7 +357,7 @@ export default function ResultsPage() {
         <div className={styles.container}>
           <h1 className={styles.title}>Data not found</h1>
           <p className={styles.subtitle}>
-            We couldn't find the necessary data. The link might be invalid or expired.
+            We couldn&apos;t find the necessary data. The link might be invalid or expired.
           </p>
           <Link href="/" className={styles.button}>
             Back to Home

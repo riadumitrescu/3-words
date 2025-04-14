@@ -35,6 +35,10 @@
    - Prioritized server-side API route for greater reliability across hosting environments
    - Removed dependency on environment variables to ensure seamless deployments
    - Ensured API response format consistency across different model types
+   - Fixed ESLint errors for proper Vercel deployment
+   - Fixed unescaped entities in TSX files for better accessibility
+   - Removed unused variables and fixed TypeScript linting issues
+   - Corrected Next.js configuration by removing deprecated options
 
 ## App Structure
 - `/` - Home page where users enter their name and 3 self-descriptive words
