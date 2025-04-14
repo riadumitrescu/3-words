@@ -16,8 +16,9 @@ type FriendData = {
   createdAt: string;
 };
 
-// Keep API key temporarily hardcoded for development
-const GEMINI_API_KEY = "AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8";
+// API key hardcoded for public use - This is intentionally exposed for educational purposes
+// In a production environment, you would use environment variables (.env.local) and server-side API calls
+const GEMINI_API_KEY = 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -93,19 +94,19 @@ export default function ResultsPage() {
         console.log('Sending request to Gemini API with prompt:', prompt);
         
         try {
-          // Try v1beta endpoint with the specified model
+          // Try v1beta endpoint with the updated model
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
               body: JSON.stringify({
                 contents: [
                   {
                     parts: [
-                      {
-                        text: prompt
-                      }
+                      { text: prompt }
                     ]
                   }
                 ]
@@ -264,7 +265,7 @@ export default function ResultsPage() {
         <div className={styles.wordsComparison}>
           <div className={styles.wordColumn}>
             <h2 className={styles.wordHeader}>
-              {playerData.name === 'You' ? 'Your Words' : `${playerData.name}&apos;s Words`}
+              {playerData.name === 'You' ? 'Your Words' : `${playerData.name}'s Words`}
             </h2>
             {playerData.words.map((word, index) => (
               <div key={`self-${index}`} className={`${styles.wordChip} ${styles.selfWord}`}>
@@ -275,7 +276,7 @@ export default function ResultsPage() {
           
           <div className={styles.wordColumn}>
             <h2 className={styles.wordHeader}>
-              Friend&apos;s Words
+              Friend's Words
             </h2>
             {friendData.words.map((word, index) => (
               <div key={`friend-${index}`} className={`${styles.wordChip} ${styles.friendWord}`}>

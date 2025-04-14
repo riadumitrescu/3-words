@@ -59,7 +59,7 @@ export default function PlayPage() {
   const handleSubmit = () => {
     if (typeof id === 'string') {
       try {
-        // Save friend&apos;s words to localStorage
+        // Save friend's words to localStorage
         localStorage.setItem(`friendWords-${id}`, JSON.stringify({
           words,
           createdAt: new Date().toISOString()
@@ -84,7 +84,7 @@ export default function PlayPage() {
       <main className={styles.main}>
         <div className={styles.container}>
           <h1 className={styles.title}>User not found</h1>
-          <p className={styles.subtitle}>We couldn&apos;t find this user. The link might be invalid or expired.</p>
+          <p className={styles.subtitle}>We couldn't find this user. The link might be invalid or expired.</p>
         </div>
       </main>
     );
@@ -96,7 +96,7 @@ export default function PlayPage() {
     <main className={styles.main}>
       <div className={styles.container}>
         <h1 className={styles.title}>Describe {playerName}</h1>
-        <p className={styles.subtitle}>Enter 3 words you&apos;d use to describe {playerName}.</p>
+        <p className={styles.subtitle}>Enter 3 words you'd use to describe {playerName}.</p>
         
         <div className={styles.wordInputs}>
           {words.map((word, index) => (

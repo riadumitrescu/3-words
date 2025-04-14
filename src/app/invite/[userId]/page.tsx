@@ -100,7 +100,7 @@ export default function InvitePage() {
       <div className={styles.container}>
         <h1 className={styles.title}>Thank You, {playerName}!</h1>
         <p className={styles.subtitle}>
-          You&apos;ve described yourself with these three words:
+          You've described yourself with these three words:
         </p>
         
         <div className={styles.wordsList}>
