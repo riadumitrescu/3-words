@@ -47,7 +47,16 @@
     - Implemented more restrictive policy configuration for enhanced database security
     - Added success feedback on successful data insertion
 
-11. Added localStorage fallback for reflections storage to ensure data persistence when offline or if Supabase is unavailable
+11. Link Sharing Improvements
+    - Hardcoded production URL (https://3-words.vercel.app) for all shared links
+    - Removed dependency on dynamic window.location.origin to prevent preview URLs
+    - Enhanced the link display UI with a visual icon and clearer formatting
+    - Added explanatory text to inform users that links are public and don't require login
+    - Improved accessibility by adding proper aria labels to input fields
+    - Made the copy-to-clipboard functionality more visible and user-friendly
+    - Ensures consistent, production-ready links regardless of development environment
+
+12. Added localStorage fallback for reflections storage to ensure data persistence when offline or if Supabase is unavailable
 
 ## App Structure
 - `/` - Home page where users enter their name and 3 self-descriptive words

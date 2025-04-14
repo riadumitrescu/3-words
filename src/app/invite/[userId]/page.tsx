@@ -11,6 +11,9 @@ type PlayerData = {
   createdAt: string;
 };
 
+// Hardcoded production URL for sharing links
+const PRODUCTION_URL = 'https://3-words.vercel.app';
+
 export default function InvitePage() {
   const { userId } = useParams();
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
@@ -41,9 +44,8 @@ export default function InvitePage() {
           }
         }
         
-        // Generate invite link
-        const origin = window.location.origin;
-        setInviteLink(`${origin}/play/${userId}`);
+        // Generate invite link using the production URL
+        setInviteLink(`${PRODUCTION_URL}/play/${userId}`);
       } catch (err) {
         console.error('Error loading player data:', err);
       }
@@ -118,12 +120,16 @@ export default function InvitePage() {
           </p>
           
           <div className={styles.linkContainer}>
-            <input 
-              type="text" 
-              value={inviteLink} 
-              readOnly 
-              className={styles.linkInput} 
-            />
+            <div className={styles.linkWrapper}>
+              <span className={styles.linkIcon}>🔗</span>
+              <input 
+                type="text" 
+                value={inviteLink} 
+                readOnly 
+                className={styles.linkInput} 
+                aria-label="Public share link to send to friends"
+              />
+            </div>
             <button 
               onClick={copyToClipboard} 
               className={styles.copyButton}
@@ -131,6 +137,9 @@ export default function InvitePage() {
               Copy
             </button>
           </div>
+          <p className={styles.linkNote}>
+            This is a public link that anyone can access. No login required.
+          </p>
         </div>
       </div>
     </main>
