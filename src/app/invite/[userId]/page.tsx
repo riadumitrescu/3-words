@@ -35,9 +35,11 @@ export default function InvitePage() {
       if (typeof userId !== 'string') return;
       
       setLoading(true);
+      console.log('🔍 Fetching player data for user_id:', userId);
       
       try {
         // First try to get data from Supabase (primary source)
+        console.log('🔄 Querying Supabase for player data...');
         const { data, error } = await supabase
           .from('words')
           .select('player_name, friend_words, created_at')
@@ -47,8 +49,20 @@ export default function InvitePage() {
           .limit(1)
           .single();
         
-        if (data) {
+        if (error) {
+          if (error.code === 'PGRST116') {
+            // No rows returned - this is the "not found" case
+            console.warn('⚠️ Player data not found in Supabase:', error);
+          } else {
+            // Other database errors
+            console.error('❌ Supabase query error:', error);
+          }
+          
+          // Try localStorage fallback regardless of error type
+          fetchFromLocalStorage();
+        } else if (data) {
           console.log('✅ Player data fetched from Supabase:', data);
+          
           // Format the data to match our expected structure
           setPlayerData({
             name: data.player_name,
@@ -56,28 +70,57 @@ export default function InvitePage() {
             createdAt: data.created_at
           });
         } else {
-          console.log('⚠️ Player data not found in Supabase, trying localStorage...');
-          // Fallback to localStorage if Supabase doesn't have the data
-          
-          // Try to get data in new format first
-          const storedPlayerData = localStorage.getItem(`playerData-${userId}`);
-          if (storedPlayerData) {
-            setPlayerData(JSON.parse(storedPlayerData));
-          } else {
-            // Fallback to old format if needed
-            const oldData = localStorage.getItem(userId);
-            if (oldData) {
-              setPlayerData(JSON.parse(oldData));
-            }
-          }
+          console.warn('⚠️ No data returned from Supabase but no error either');
+          fetchFromLocalStorage();
         }
         
         // Generate invite link using the production URL
         setInviteLink(`${PRODUCTION_URL}/play/${userId}`);
       } catch (err) {
-        console.error('Error loading player data:', err);
+        console.error('❌ Unexpected error fetching player data:', err);
+        fetchFromLocalStorage();
       } finally {
         setLoading(false);
+      }
+    };
+    
+    // Helper function to fetch from localStorage as fallback
+    const fetchFromLocalStorage = () => {
+      if (typeof userId !== 'string') {
+        console.error('❌ Invalid user_id:', userId);
+        return;
+      }
+      
+      console.log('🔄 Falling back to localStorage for user_id:', userId);
+      
+      // Try to get data in new format first
+      const storedPlayerData = localStorage.getItem(`playerData-${userId}`);
+      if (storedPlayerData) {
+        try {
+          const parsedData = JSON.parse(storedPlayerData);
+          console.log('✅ Player data found in localStorage (new format):', parsedData);
+          setPlayerData(parsedData);
+        } catch (parseError) {
+          console.error('❌ Error parsing localStorage data:', parseError);
+        }
+      } else {
+        // Fallback to old format if needed
+        const oldData = localStorage.getItem(userId);
+        if (oldData) {
+          try {
+            const parsedData = JSON.parse(oldData);
+            console.log('✅ Player data found in localStorage (old format):', parsedData);
+            setPlayerData({
+              name: 'You', // Default name since old format didn't store names
+              words: parsedData.words,
+              createdAt: parsedData.createdAt
+            });
+          } catch (parseError) {
+            console.error('❌ Error parsing old localStorage data:', parseError);
+          }
+        } else {
+          console.error('❌ Player data not found in localStorage');
+        }
       }
     };
     
