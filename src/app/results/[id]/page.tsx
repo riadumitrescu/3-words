@@ -264,7 +264,7 @@ export default function ResultsPage() {
         <div className={styles.wordsComparison}>
           <div className={styles.wordColumn}>
             <h2 className={styles.wordHeader}>
-              {playerData.name === 'You' ? 'Your Words' : `${playerData.name}'s Words`}
+              {playerData.name === 'You' ? 'Your Words' : `${playerData.name}&apos;s Words`}
             </h2>
             {playerData.words.map((word, index) => (
               <div key={`self-${index}`} className={`${styles.wordChip} ${styles.selfWord}`}>
@@ -275,7 +275,7 @@ export default function ResultsPage() {
           
           <div className={styles.wordColumn}>
             <h2 className={styles.wordHeader}>
-              Friend's Words
+              Friend&apos;s Words
             </h2>
             {friendData.words.map((word, index) => (
               <div key={`friend-${index}`} className={`${styles.wordChip} ${styles.friendWord}`}>

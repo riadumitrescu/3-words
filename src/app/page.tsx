@@ -80,7 +80,7 @@ export default function Home() {
             className={styles.nameField}
           />
         </div>
-        
+
         <div className={styles.wordInputs}>
           <h2 className={styles.wordsTitle}>Choose 3 words that best describe you</h2>
           {words.map((word, index) => (
