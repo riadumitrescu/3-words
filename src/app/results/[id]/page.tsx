@@ -18,9 +18,8 @@ type FriendData = {
 
 // API key hardcoded for public use - This is intentionally exposed for educational purposes
 // In a production environment, you would use environment variables (.env.local) and server-side API calls
-// These variables are used in the server-side API route now
-// const GEMINI_API_KEY = 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
-// const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent';
+const GEMINI_API_KEY = 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -106,74 +105,183 @@ export default function ResultsPage() {
         End with: Score: XX% (where XX is your assessment of alignment from 0-100).
         `;
 
-        console.log('🔍 Building request with prompt length:', prompt.length);
+        console.log('🔍 Sending request to Gemini API with prompt length:', prompt.length);
         
-        // Format the request payload
-        const requestPayload = {
-          contents: [
-            {
-              parts: [
-                { text: prompt }
-              ]
-            }
-          ]
-        };
-        
-        // SERVER API ROUTE STRATEGY
-        // Going all-in with the server-side route which is most reliable
-        console.log('🔄 Using server API route with gemini-pro model...');
         try {
-          console.log('📤 Sending request to server API route...');
-          const serverResponse = await fetch('/api/gemini', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: 'gemini-pro', // Our best hope for a working model
-              contents: requestPayload.contents
-            })
-          });
+          // Format the request payload
+          const requestPayload = {
+            contents: [
+              {
+                parts: [
+                  { text: prompt }
+                ]
+              }
+            ]
+          };
           
-          console.log('📥 Server API route response status:', serverResponse.status);
+          console.log('🌐 Using Gemini API endpoint:', GEMINI_ENDPOINT);
+          console.log('🔑 Using API key (first 6 chars):', GEMINI_API_KEY.substring(0, 6) + '...');
           
-          if (serverResponse.ok) {
-            const serverData = await serverResponse.json();
-            console.log('✅ Server API route response received');
-            
-            // Check if there's an error field in the response
-            if (serverData.error) {
-              console.error('❌ Error in server response:', serverData.error);
-              throw new Error(serverData.error.message || 'Unknown server error');
+          // Send the request to Gemini API
+          console.log('📤 Sending fetch request to Gemini API...');
+          const response = await fetch(
+            `${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestPayload)
             }
-            
-            const serverText = serverData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            console.log('📝 Response text received from server, length:', serverText.length);
-            
-            if (serverText) {
-              console.log('✅ Processing valid server API response text');
-              processApiResponse(serverText);
-              return; // Exit early with successful response
-            } else {
-              console.error('❌ Empty response text from server');
-              throw new Error('Empty response from server');
-            }
-          } else {
-            const errorText = await serverResponse.text();
-            console.error('❌ Server API route error:', serverResponse.status, errorText);
-            throw new Error(`Server API error: ${serverResponse.status}`);
+          );
+          
+          console.log('📥 Gemini API response received. Status:', response.status);
+          console.log('📦 Response headers:', Object.fromEntries([...response.headers.entries()]));
+          
+          // Manual CORS testing
+          console.log('🔍 Testing direct API access from client...');
+          try {
+            const testResponse = await fetch(
+              `${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: "Say hi" }] }]
+                })
+              }
+            );
+            console.log('✅ Direct API test status:', testResponse.status);
+            const testData = await testResponse.json();
+            console.log('✅ Direct API test response:', testData);
+          } catch (testError) {
+            console.error('❌ Direct API test failed:', testError);
           }
-        } catch (serverError) {
-          console.error('❌ Error with server API request:', serverError);
-          console.log('⚠️ Server API failed, using fallback analysis');
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API response not OK (v1beta):', response.status, errorText);
+            
+            // Attempt alternative model if available
+            console.log('🔄 Attempting fallback to alternative model...');
+            const fallbackResponse = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestPayload)
+              }
+            );
+            
+            console.log('📥 Fallback response status:', fallbackResponse.status);
+            
+            if (!fallbackResponse.ok) {
+              const fallbackErrorText = await fallbackResponse.text();
+              console.error('❌ Fallback API response not OK:', fallbackResponse.status, fallbackErrorText);
+              
+              // Try the server-side API route as a final resort
+              console.log('🔄 Attempting to use server-side API route...');
+              try {
+                const serverResponse = await fetch('/api/gemini', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    model: 'gemini-1.5-flash',
+                    contents: requestPayload.contents
+                  })
+                });
+                
+                console.log('📥 Server API route response status:', serverResponse.status);
+                
+                if (serverResponse.ok) {
+                  const serverData = await serverResponse.json();
+                  console.log('✅ Server API route response received');
+                  
+                  const serverText = serverData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                  console.log('📝 Server text received, length:', serverText.length);
+                  
+                  if (serverText) {
+                    processApiResponse(serverText);
+                    return;
+                  }
+                }
+                
+                // If server route also fails, try one more time with gemini-pro via server
+                console.log('🔄 Final attempt: gemini-pro via server API route...');
+                const finalResponse = await fetch('/api/gemini', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    model: 'gemini-pro',
+                    contents: requestPayload.contents
+                  })
+                });
+                
+                if (finalResponse.ok) {
+                  const finalData = await finalResponse.json();
+                  const finalText = finalData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                  
+                  if (finalText) {
+                    processApiResponse(finalText);
+                    return;
+                  }
+                }
+              } catch (serverError) {
+                console.error('❌ Server API route error:', serverError);
+              }
+              
+              console.log('🔄 All API attempts failed, using fallback analysis');
+              generateFallbackAnalysis();
+              return;
+            }
+            
+            // Process fallback response
+            const fallbackData = await fallbackResponse.json();
+            console.log('✅ Fallback Gemini API response received');
+            
+            const fallbackText = fallbackData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            console.log('📝 Fallback text received, length:', fallbackText.length);
+            
+            if (fallbackText) {
+              processApiResponse(fallbackText);
+            } else {
+              console.error('❌ No valid response from fallback API:', fallbackData);
+              generateFallbackAnalysis();
+            }
+            return;
+          }
+          
+          const data = await response.json();
+          console.log('✅ Gemini API response successfully parsed');
+          
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          console.log('📝 Extracted text from API response:', text ? `${text.substring(0, 100)}... (length: ${text.length})` : 'None');
+          
+          if (text) {
+            console.log('✅ Processing valid API response text');
+            processApiResponse(text);
+          } else if (data.error) {
+            console.error('❌ Gemini API error:', data.error);
+            generateFallbackAnalysis();
+          } else {
+            console.error('❌ No valid response from Gemini API:', data);
+            generateFallbackAnalysis();
+          }
+        } catch (apiError) {
+          console.error('❌ Error with API request:', apiError);
           generateFallbackAnalysis();
-        } finally {
-          setLoading(false);
         }
       } catch (err) {
         console.error('❌ Error analyzing words:', err);
         setError('Could not generate analysis. Please try again.');
         generateFallbackAnalysis();
+      } finally {
         setLoading(false);
       }
     };
@@ -299,7 +407,7 @@ export default function ResultsPage() {
       if (similarPairs.length > 0 && similarMatchCount > 0) {
         analysisText += `There are interesting connections between their word choices. `;
         
-        similarPairs.slice(0, similarMatchCount).forEach((pair) => {
+        similarPairs.slice(0, similarMatchCount).forEach((pair, index) => {
           analysisText += `${playerName}'s word "${pair.playerWord}" and their friend's word "${pair.friendWord}" share similar meanings, suggesting alignment in perception though expressed differently. `;
         });
       }
@@ -357,7 +465,7 @@ export default function ResultsPage() {
         <div className={styles.container}>
           <h1 className={styles.title}>Data not found</h1>
           <p className={styles.subtitle}>
-            We couldn&apos;t find the necessary data. The link might be invalid or expired.
+            We couldn't find the necessary data. The link might be invalid or expired.
           </p>
           <Link href="/" className={styles.button}>
             Back to Home
@@ -386,7 +494,7 @@ export default function ResultsPage() {
           
           <div className={styles.wordColumn}>
             <h2 className={styles.wordHeader}>
-              Friend's Words
+              Friend&apos;s Words
             </h2>
             {friendData.words.map((word, index) => (
               <div key={`friend-${index}`} className={`${styles.wordChip} ${styles.friendWord}`}>

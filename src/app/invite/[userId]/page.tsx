@@ -84,7 +84,7 @@ export default function InvitePage() {
       <main className={styles.main}>
         <div className={styles.container}>
           <h1 className={styles.title}>User not found</h1>
-          <p className={styles.subtitle}>We couldn't find your data. Please try again.</p>
+          <p className={styles.subtitle}>We couldn&apos;t find your data. Please try again.</p>
           <Link href="/" className={styles.backButton}>
             Back to Home
           </Link>
@@ -100,7 +100,7 @@ export default function InvitePage() {
       <div className={styles.container}>
         <h1 className={styles.title}>Thank You, {playerName}!</h1>
         <p className={styles.subtitle}>
-          You&apos;ve described yourself with these three words:
+          You've described yourself with these three words:
         </p>
         
         <div className={styles.wordsList}>
