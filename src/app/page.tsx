@@ -43,12 +43,15 @@ export default function Home() {
       const userId = crypto.randomUUID();
       const createdAt = new Date().toISOString();
       
-      // Save to localStorage with new format
+      console.log('🔑 Generated user_id:', userId);
+      
+      // Save to localStorage with new format as a fallback
       localStorage.setItem(`playerData-${userId}`, JSON.stringify({
         name,
         words,
         createdAt
       }));
+      console.log('✅ Saved player data to localStorage');
       
       // Also save in original format for backward compatibility
       localStorage.setItem(userId, JSON.stringify({
@@ -56,9 +59,11 @@ export default function Home() {
         createdAt
       }));
       
-      // Try to save the player data to Supabase
+      // Save the player data to Supabase - this is the primary storage
+      let supabaseSuccess = false;
+      
       try {
-        console.log('Saving player data to Supabase:', { user_id: userId, friend_name: name, friend_words: words });
+        console.log('🔄 Checking if Supabase table exists...');
         
         // First, check if the table exists
         const { error: testError } = await supabase
@@ -66,45 +71,100 @@ export default function Home() {
           .select('count')
           .limit(1);
         
-        if (testError && testError.message.includes('does not exist')) {
-          console.error('Table does not exist:', testError.message);
-          // Continue with navigation even if Supabase save fails
-        } else {
-          // Save player's own words to Supabase - ONLY include required fields
-          const { error } = await supabase
-            .from('words')
-            .insert([
-              { 
-                user_id: userId, 
-                player_name: name, // Store the player's name as a separate field
-                friend_name: `${name} (Self)`, // Mark this as the player's own words
-                friend_words: words
-                // Do NOT include id or created_at - let Supabase generate these
-              }
-            ]);
-            
-          if (error) {
-            console.error('Error saving player data to Supabase:', error.message);
-            
-            if (error.message.includes('violates row-level security policy')) {
-              console.warn('Row security policy error. Please run the SQL command to fix RLS policies.');
-              // Continue with navigation even if Supabase save fails
-            }
+        if (testError) {
+          if (testError.message.includes('does not exist')) {
+            console.error('❌ Table does not exist:', testError.message);
+            setError('Database table not found. Please contact the administrator.');
+            throw new Error('Table does not exist: ' + testError.message);
           } else {
-            console.log('✅ Successfully saved player data to Supabase');
+            console.error('❌ Error checking table:', testError.message);
+            throw new Error('Error checking table: ' + testError.message);
           }
         }
+        
+        console.log('🔄 Inserting player data to Supabase...');
+        console.log('📦 Data to insert:', { 
+          user_id: userId, 
+          player_name: name,
+          friend_name: `${name} (Self)`, 
+          friend_words: words 
+        });
+        
+        // Save player's own words to Supabase - ONLY include required fields
+        const { data, error } = await supabase
+          .from('words')
+          .insert([
+            { 
+              user_id: userId, 
+              player_name: name,
+              friend_name: `${name} (Self)`, // Mark this as the player's own words
+              friend_words: words
+              // Do NOT include id or created_at - let Supabase generate these
+            }
+          ])
+          .select(); // Add this to get the inserted records back
+            
+        if (error) {
+          console.error('❌ Error saving player data to Supabase:', error);
+          
+          if (error.message.includes('violates row-level security policy')) {
+            setError('Database permission error. Please contact the administrator.');
+            throw new Error('RLS policy error: ' + error.message);
+          } else {
+            setError('Error saving your data. Please try again.');
+            throw new Error('Supabase insert error: ' + error.message);
+          }
+        }
+        
+        if (data && data.length > 0) {
+          console.log('✅ Successfully saved player data to Supabase:', data[0]);
+          supabaseSuccess = true;
+        } else {
+          console.warn('⚠️ No data returned from insert operation');
+          // We'll still consider this a success since there was no error
+          supabaseSuccess = true;
+        }
+        
+        // Verify the data was actually inserted
+        console.log('🔄 Verifying data was inserted...');
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('words')
+          .select('*')
+          .eq('user_id', userId)
+          .ilike('friend_name', '%(Self)%')
+          .single();
+        
+        if (verifyError) {
+          console.error('❌ Error verifying insert:', verifyError);
+          // We'll still proceed since the initial insert didn't error
+        } else if (verifyData) {
+          console.log('✅ Verified data exists in Supabase:', verifyData);
+          supabaseSuccess = true;
+        } else {
+          console.error('❌ Could not verify data was inserted');
+          setError('Your data was saved locally but may not be available across devices.');
+          // We'll still proceed since localStorage has the data
+        }
       } catch (supabaseError) {
-        console.error('Supabase error:', supabaseError);
-        // Continue with navigation even if Supabase save fails
+        console.error('❌ Supabase operation failed:', supabaseError);
+        setError('Error saving your data. Please try again or contact support.');
+        // Don't redirect if Supabase insert failed completely
+        setIsSubmitting(false);
+        return;
       }
       
-      // Redirect to invite page
-      router.push(`/invite/${userId}`);
+      if (supabaseSuccess) {
+        console.log('🚀 Supabase insert successful, redirecting to invite page...');
+        // Only redirect if Supabase insert was successful
+        router.push(`/invite/${userId}`);
+      } else {
+        console.error('❌ Supabase insert failed, not redirecting');
+        setError('There was an error saving your data. Please try again.');
+        setIsSubmitting(false);
+      }
     } catch (err) {
-      console.error('Error saving data:', err);
+      console.error('❌ Error in submit process:', err);
       setError('There was an error saving your data. Please try again.');
-    } finally {
       setIsSubmitting(false);
     }
   };
