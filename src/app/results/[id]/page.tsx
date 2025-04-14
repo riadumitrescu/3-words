@@ -125,7 +125,7 @@ export default function ResultsPage() {
           .from('words')
           .select('player_name, friend_words, created_at')
           .eq('user_id', id)
-          .ilike('friend_name', '%Self%')
+          .ilike('friend_name', '%(Self)%')
           .order('created_at', { ascending: false })
           .limit(1)
           .single();

@@ -42,7 +42,7 @@ export default function InvitePage() {
           .from('words')
           .select('player_name, friend_words, created_at')
           .eq('user_id', userId)
-          .ilike('friend_name', '%Self%') // Find the user's self-description using ILIKE
+          .ilike('friend_name', '%(Self)%') // Properly matches the "(Self)" suffix
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
