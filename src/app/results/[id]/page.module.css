@@ -30,85 +30,110 @@
   max-width: 80%;
 }
 
-.resultsContainer {
-  width: 100%;
+.wordsComparison {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
+  width: 100%;
+  gap: var(--space-md);
   margin-bottom: var(--space-lg);
-}
-
-.section {
-  width: 100%;
-}
-
-.sectionTitle {
-  font-size: 1.5rem;
-  margin-bottom: var(--space-md);
-  color: var(--color-text);
-}
-
-.wordsList {
-  display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
   justify-content: center;
 }
 
-.wordChip {
-  padding: var(--space-xs) var(--space-md);
-  border-radius: 50px;
+.wordColumn {
+  flex: 1;
+  min-width: 180px;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.wordHeader {
   font-size: 1.2rem;
-  min-width: 90px;
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+  font-weight: normal;
+  font-family: var(--font-serif);
+}
+
+.wordChip {
+  width: 100%;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: 10px;
+  font-size: 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.section:nth-child(1) .wordChip {
+.wordChip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.selfWord {
   background-color: var(--color-primary);
   color: white;
 }
 
-.section:nth-child(2) .wordChip {
+.friendWord {
   background-color: var(--color-secondary);
   color: white;
 }
 
-.scoreSection {
+.scoreContainer {
+  width: 100%;
   display: flex;
   justify-content: center;
-  margin-top: var(--space-md);
+  margin: var(--space-xl) 0;
+  opacity: 0;
+  animation: fadeIn 1s ease forwards;
+  animation-delay: 0.3s;
 }
 
-.scoreBox {
-  background-color: var(--color-bg);
-  border: 2px solid var(--color-border);
-  border-radius: 8px;
-  padding: var(--space-xs) var(--space-md);
+.bigScore {
   display: flex;
-  gap: var(--space-sm);
+  flex-direction: column;
   align-items: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  gap: var(--space-xs);
+  max-width: 90%;
 }
 
-.scoreLabel {
-  font-size: 1rem;
-  color: var(--color-muted);
-}
-
-.scoreValue {
-  font-size: 2rem;
-  font-weight: bold;
+.bigScore span {
+  font-size: 1.3rem;
   color: var(--color-text);
+  font-family: var(--font-serif);
+}
+
+.bigScore .scoreValue {
+  font-size: 4rem;
+  font-weight: bold;
+  color: var(--color-primary);
   display: flex;
   align-items: baseline;
+  margin: var(--space-xs) 0;
+  line-height: 1;
 }
 
-.scorePercent {
-  font-size: 1.2rem;
-  margin-left: 2px;
+.bigScore .scorePercent {
+  font-size: 2.5rem;
+  margin-left: var(--space-xs);
+  font-weight: normal;
+  color: var(--color-secondary);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .analysisCard {
@@ -122,6 +147,18 @@
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.7s ease, transform 0.7s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.analysisCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--color-primary), var(--color-secondary));
 }
 
 .fadeIn {
@@ -247,13 +284,12 @@
     max-width: 90%;
   }
   
-  .sectionTitle {
-    font-size: 1.3rem;
-  }
-  
   .wordChip {
     font-size: 1rem;
-    min-width: 80px;
+  }
+  
+  .wordHeader {
+    font-size: 1.1rem;
   }
   
   .analysisCard {
@@ -266,5 +302,17 @@
   
   .analysisText p {
     font-size: 1rem;
+  }
+  
+  .bigScore span {
+    font-size: 1.1rem;
+  }
+  
+  .bigScore .scoreValue {
+    font-size: 3rem;
+  }
+  
+  .bigScore .scorePercent {
+    font-size: 1.8rem;
   }
 } 

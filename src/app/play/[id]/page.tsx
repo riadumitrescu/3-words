@@ -15,11 +15,19 @@ export default function PlayPage() {
   const [words, setWords] = useState<string[]>(['', '', '']);
   const [isComplete, setIsComplete] = useState(false);
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
+  // Set mounted state to avoid hydration errors
   useEffect(() => {
-    // Check if player exists in localStorage
-    if (typeof id === 'string') {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Only run on client-side after mounting
+    if (!mounted || typeof id !== 'string') return;
+    
+    try {
       // Try to get data in new format first
       const storedPlayerData = localStorage.getItem(`playerData-${id}`);
       if (storedPlayerData) {
@@ -31,8 +39,10 @@ export default function PlayPage() {
           setPlayerData(JSON.parse(oldData));
         }
       }
+    } catch (err) {
+      console.error('Error loading player data:', err);
     }
-  }, [id]);
+  }, [id, mounted]);
 
   // Check if all words are filled
   useEffect(() => {
@@ -48,16 +58,26 @@ export default function PlayPage() {
 
   const handleSubmit = () => {
     if (typeof id === 'string') {
-      // Save friend's words to localStorage
-      localStorage.setItem(`friendWords-${id}`, JSON.stringify({
-        words,
-        createdAt: new Date().toISOString()
-      }));
-      
-      // Navigate to results page
-      router.push(`/results/${id}`);
+      try {
+        // Save friend's words to localStorage
+        localStorage.setItem(`friendWords-${id}`, JSON.stringify({
+          words,
+          createdAt: new Date().toISOString()
+        }));
+        
+        // Navigate to results page
+        router.push(`/results/${id}`);
+      } catch (err) {
+        console.error('Error saving friend data:', err);
+        alert('There was an error saving your response. Please try again.');
+      }
     }
   };
+
+  // Don't render during SSR to prevent hydration errors
+  if (!mounted) {
+    return null;
+  }
 
   if (!playerData) {
     return (

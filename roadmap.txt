@@ -36,9 +36,11 @@
    - Displays both sets of descriptive words with clear labeling
    - Provides a percentage match score for visual impact
    - Integrates with Google's Gemini API for detailed word analysis
-   - Customized Gemini prompt to include name and specific analysis points
+   - Customized Gemini prompt that compares meaning and emotional tone of word sets
+   - Extracts score directly from Gemini's analysis output
    - Displays an animated, thoughtful analysis of the word comparison
    - Features elegant animations for a memorable reveal experience
+   - Enhanced UI with hover effects and visual hierarchy
 
 6. Vercel Deployment Optimization
    - Configured environment variables for Vercel
@@ -48,6 +50,21 @@
    - Added deployment script for easier Vercel deployment
    - Updated .gitignore for proper file exclusion
    - Added Node.js version requirement for Vercel
+
+7. UI/UX and Technical Improvements
+   - Fixed hydration errors across all pages with client-side rendering controls
+   - Added mounted state pattern to prevent server/client HTML mismatches
+   - Enhanced error handling for Gemini API requests
+   - Added detailed console logging for API requests and responses
+   - Improved score explanation text on results page for better user understanding
+   - Added responsive text styling for score explanation
+   - Optimized component rendering to prevent flash of unstyled content
+   - Updated Gemini API endpoint from v1 to v1beta to fix 404 errors
+   - Fixed API key handling for better security
+   - Improved user-facing error messages to be more friendly
+   - Added smart fallback for API failures with local word comparison
+   - Implemented graceful degradation when Gemini API is unavailable
+   - Updated to use Gemini 1.5 Flash model with a valid API key
 
 ## App Structure
 - `/` - Home page where users enter their name and 3 self-descriptive words

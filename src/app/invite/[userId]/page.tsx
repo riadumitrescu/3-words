@@ -15,32 +15,69 @@ export default function InvitePage() {
   const { userId } = useParams();
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const [inviteLink, setInviteLink] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state after component mounts to prevent hydration errors
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    // Only run on client-side after mounting
+    if (!mounted) return;
+    
     // Get player data from localStorage
     if (typeof userId === 'string') {
-      // Try to get data in new format first
-      const storedPlayerData = localStorage.getItem(`playerData-${userId}`);
-      if (storedPlayerData) {
-        setPlayerData(JSON.parse(storedPlayerData));
-      } else {
-        // Fallback to old format if needed
-        const oldData = localStorage.getItem(userId);
-        if (oldData) {
-          setPlayerData(JSON.parse(oldData));
+      try {
+        // Try to get data in new format first
+        const storedPlayerData = localStorage.getItem(`playerData-${userId}`);
+        if (storedPlayerData) {
+          setPlayerData(JSON.parse(storedPlayerData));
+        } else {
+          // Fallback to old format if needed
+          const oldData = localStorage.getItem(userId);
+          if (oldData) {
+            setPlayerData(JSON.parse(oldData));
+          }
         }
+        
+        // Generate invite link
+        const origin = window.location.origin;
+        setInviteLink(`${origin}/play/${userId}`);
+      } catch (err) {
+        console.error('Error loading player data:', err);
       }
-      
-      // Generate invite link
-      const origin = window.location.origin;
-      setInviteLink(`${origin}/play/${userId}`);
     }
-  }, [userId]);
+  }, [userId, mounted]);
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(inviteLink);
-    alert('Link copied to clipboard!');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(inviteLink)
+        .then(() => alert('Link copied to clipboard!'))
+        .catch(err => console.error('Failed to copy:', err));
+    } else {
+      // Fallback for browsers without clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = inviteLink;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        alert('Link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+      
+      document.body.removeChild(textArea);
+    }
   };
+
+  // Don't render during SSR to avoid hydration errors
+  if (!mounted) {
+    return null;
+  }
 
   if (!playerData) {
     return (

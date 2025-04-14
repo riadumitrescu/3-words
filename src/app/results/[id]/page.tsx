@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -17,7 +17,7 @@ type FriendData = {
 };
 
 // Keep API key in environment variable for security
-const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_KEY || 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -27,98 +27,218 @@ export default function ResultsPage() {
   const [score, setScore] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const analysisRef = useRef<HTMLDivElement>(null);
+
+  // Set mounted state to ensure we only run client-side code after mounting
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    if (typeof id === 'string') {
-      // Get player data
-      const storedPlayerData = localStorage.getItem(`playerData-${id}`);
-      if (storedPlayerData) {
+    if (!mounted || typeof id !== 'string') return;
+    
+    // Get player data
+    const storedPlayerData = localStorage.getItem(`playerData-${id}`);
+    if (storedPlayerData) {
+      try {
         setPlayerData(JSON.parse(storedPlayerData));
-      } else {
-        // Fallback to old format if needed
-        const oldData = localStorage.getItem(id);
-        if (oldData) {
+      } catch (e) {
+        console.error('Error parsing playerData:', e);
+      }
+    } else {
+      // Fallback to old format if needed
+      const oldData = localStorage.getItem(id);
+      if (oldData) {
+        try {
           const parsedData = JSON.parse(oldData);
           setPlayerData({
             name: 'You', // Default name if not provided
             words: parsedData.words,
             createdAt: parsedData.createdAt
           });
+        } catch (e) {
+          console.error('Error parsing oldData:', e);
         }
       }
+    }
 
-      // Get friend's description data
-      const storedFriendData = localStorage.getItem(`friendWords-${id}`);
-      if (storedFriendData) {
+    // Get friend's description data
+    const storedFriendData = localStorage.getItem(`friendWords-${id}`);
+    if (storedFriendData) {
+      try {
         setFriendData(JSON.parse(storedFriendData));
+      } catch (e) {
+        console.error('Error parsing friendData:', e);
       }
     }
-  }, [id]);
+  }, [id, mounted]);
 
   useEffect(() => {
     // Generate analysis when both data sets are available
     const analyzeWords = async () => {
-      if (!playerData || !friendData) return;
+      if (!playerData || !friendData || !mounted) return;
       
       try {
         setLoading(true);
         
-        // Calculate matching words score
-        const matchCount = playerData.words.filter(word => 
-          friendData.words.some(friendWord => 
-            friendWord.toLowerCase() === word.toLowerCase()
-          )
-        ).length;
-        
-        const matchPercentage = Math.round((matchCount / 3) * 100);
-        setScore(`${matchPercentage}`);
-        
-        // Send to Gemini API for analysis
+        // Send to Gemini API for analysis with updated prompt
         const prompt = `
-        A person named ${playerData.name} described themselves with: "${playerData.words.join('", "')}"
-        A friend described them with: "${friendData.words.join('", "')}"
-        Compare the sets.
-        - List exact and soft matches
-        - Describe what this says about self-perception vs. how others see them
-        - Give a match score from 0–100
-        - Explain the score in 2 sentences
+        A person named ${playerData.name} described themselves with: [${playerData.words.join(', ')}]. 
+        Their friend described them with: [${friendData.words.join(', ')}]. 
+        Please compare them, find any overlapping or similar meanings, and return a percentage match from 0–100. 
+        Include a 2–3 sentence reflection, and finish with: Score: ##%
         `;
+
+        console.log('Sending request to Gemini API with prompt:', prompt);
         
-        const response = await fetch(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': GEMINI_API_KEY
-            },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 800,
-              }
-            })
+        try {
+          // Try v1beta endpoint with the updated model
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      { text: prompt }
+                    ]
+                  }
+                ]
+              })
+            }
+          );
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API response not OK (v1beta):', response.status, errorText);
+            
+            // If API key issues, use the fallback analysis
+            console.log('API key issue detected, using fallback analysis');
+            generateFallbackAnalysis();
+            return;
           }
-        );
-        
-        const data = await response.json();
-        
-        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-          setAnalysis(data.candidates[0].content.parts[0].text);
-        } else {
-          setError('Could not generate analysis. Please try again.');
+          
+          const data = await response.json();
+          console.log('Gemini API response:', data);
+          
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          
+          if (text) {
+            processApiResponse(text);
+          } else if (data.error) {
+            console.error('Gemini API error:', data.error);
+            generateFallbackAnalysis();
+          } else {
+            console.error('No valid response from Gemini API:', data);
+            generateFallbackAnalysis();
+          }
+        } catch (apiError) {
+          console.error('Error with API request:', apiError);
+          generateFallbackAnalysis();
         }
       } catch (err) {
         console.error('Error analyzing words:', err);
-        setError('Error generating analysis. Please try again.');
+        setError('Could not generate analysis. Please try again.');
+        generateFallbackAnalysis();
       } finally {
         setLoading(false);
       }
     };
+
+    // Process the API response text
+    const processApiResponse = (text: string) => {
+      // Extract the reflection part (everything before "Score:")
+      const scoreIndex = text.lastIndexOf('Score:');
+      if (scoreIndex !== -1) {
+        setAnalysis(text.substring(0, scoreIndex).trim());
+        
+        // Extract score from the text (looking for "Score: XX%" pattern)
+        const scoreMatch = text.substring(scoreIndex).match(/Score:\s*(\d+)%?/i);
+        if (scoreMatch && scoreMatch[1]) {
+          setScore(scoreMatch[1]);
+        } else {
+          // If pattern isn't found in expected format, try to find any number
+          const numberMatch = text.substring(scoreIndex).match(/\d+/);
+          if (numberMatch) {
+            setScore(numberMatch[0]);
+          } else {
+            calculateBasicScore();
+          }
+        }
+      } else {
+        // If "Score:" text not found, use the whole response as analysis
+        setAnalysis(text);
+        calculateBasicScore();
+      }
+    };
+
+    // Calculate a basic score based on direct word matches
+    const calculateBasicScore = () => {
+      if (!playerData || !friendData) return;
+      
+      const matchCount = playerData.words.filter(word => 
+        friendData.words.some(friendWord => 
+          friendWord.toLowerCase() === word.toLowerCase()
+        )
+      ).length;
+      
+      const matchPercentage = Math.round((matchCount / 3) * 100);
+      setScore(`${matchPercentage}`);
+    };
+
+    // Generate a fallback analysis without using the API
+    const generateFallbackAnalysis = () => {
+      if (!playerData || !friendData) return;
+      
+      // Check for exact word matches
+      const exactMatches = playerData.words.filter(word => 
+        friendData.words.some(friendWord => 
+          friendWord.toLowerCase() === word.toLowerCase()
+        )
+      );
+      
+      const matchCount = exactMatches.length;
+      const matchPercentage = Math.round((matchCount / 3) * 100);
+      
+      // Generate analysis text based on match percentage
+      let analysisText = '';
+      const playerName = playerData.name;
+      
+      if (matchPercentage === 100) {
+        analysisText = `Perfect match! ${playerName} and their friend have identical perceptions. All three words match exactly, showing complete alignment in how ${playerName} sees themselves and how others perceive them.`;
+      } else if (matchPercentage >= 67) {
+        analysisText = `Strong alignment! ${playerName} and their friend share similar perceptions. There's significant overlap in the chosen words, suggesting that ${playerName}'s self-image largely aligns with how others see them.`;
+      } else if (matchPercentage >= 33) {
+        analysisText = `Moderate alignment. ${playerName} and their friend have some overlap in perception, but also differences. This suggests that ${playerName} has some self-awareness, but there are aspects others see differently.`;
+      } else if (matchPercentage > 0) {
+        analysisText = `Limited alignment. ${playerName} and their friend have minimal overlap in their chosen words. This suggests a disconnect between self-perception and how others see ${playerName}.`;
+      } else {
+        analysisText = `No direct matches found between ${playerName}'s self-description and their friend's perception. This highlights how differently we can see ourselves compared to how others perceive us. These differences offer valuable opportunities for self-reflection.`;
+      }
+      
+      setAnalysis(analysisText);
+      setScore(`${matchPercentage}`);
+    };
     
     analyzeWords();
-  }, [playerData, friendData]);
+  }, [playerData, friendData, mounted]);
+
+  // Scroll to analysis when it's loaded
+  useEffect(() => {
+    if (mounted && !loading && analysis && analysisRef.current) {
+      analysisRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [loading, analysis, mounted]);
+
+  // Don't render anything during SSR to prevent hydration errors
+  if (!mounted) {
+    return null;
+  }
 
   if (!playerData || !friendData) {
     return (
@@ -141,44 +261,41 @@ export default function ResultsPage() {
       <div className={styles.container}>
         <h1 className={styles.title}>Word Comparison</h1>
         
-        <div className={styles.resultsContainer}>
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>
-              How {playerData.name === 'You' ? 'you see yourself' : `${playerData.name} sees ${playerData.name === 'You' ? 'themself' : 'themselves'}`}
+        <div className={styles.wordsComparison}>
+          <div className={styles.wordColumn}>
+            <h2 className={styles.wordHeader}>
+              {playerData.name === 'You' ? 'Your Words' : `${playerData.name}'s Words`}
             </h2>
-            <div className={styles.wordsList}>
-              {playerData.words.map((word, index) => (
-                <div key={`self-${index}`} className={styles.wordChip}>
-                  {word}
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>
-              How a friend sees {playerData.name === 'You' ? 'you' : playerData.name}
-            </h2>
-            <div className={styles.wordsList}>
-              {friendData.words.map((word, index) => (
-                <div key={`friend-${index}`} className={styles.wordChip}>
-                  {word}
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {score && (
-            <div className={styles.scoreSection}>
-              <div className={styles.scoreBox}>
-                <span className={styles.scoreLabel}>Match Score:</span>
-                <span className={styles.scoreValue}>{score}<span className={styles.scorePercent}>%</span></span>
+            {playerData.words.map((word, index) => (
+              <div key={`self-${index}`} className={`${styles.wordChip} ${styles.selfWord}`}>
+                {word}
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+          
+          <div className={styles.wordColumn}>
+            <h2 className={styles.wordHeader}>
+              Friend's Words
+            </h2>
+            {friendData.words.map((word, index) => (
+              <div key={`friend-${index}`} className={`${styles.wordChip} ${styles.friendWord}`}>
+                {word}
+              </div>
+            ))}
+          </div>
         </div>
         
-        <div className={`${styles.analysisCard} ${!loading && analysis ? styles.fadeIn : ''}`}>
+        {score && !loading && (
+          <div className={styles.scoreContainer}>
+            <div className={styles.bigScore}>
+              <span>This friend sees {playerData.name === 'You' ? 'you' : playerData.name}</span>
+              <div className={styles.scoreValue}>{score}<span className={styles.scorePercent}>%</span></div>
+              <span>as {playerData.name === 'You' ? 'you see yourself' : `${playerData.name} sees ${playerData.name === 'You' ? 'themself' : 'themselves'}`}</span>
+            </div>
+          </div>
+        )}
+        
+        <div ref={analysisRef} className={`${styles.analysisCard} ${!loading && analysis ? styles.fadeIn : ''}`}>
           {loading ? (
             <div className={styles.loadingContainer}>
               <div className={styles.loadingSpinner}></div>
@@ -196,7 +313,7 @@ export default function ResultsPage() {
             </div>
           ) : (
             <>
-              <h2 className={styles.analysisTitle}>Perception Analysis</h2>
+              <h2 className={styles.analysisTitle}>Reflection</h2>
               <div className={styles.analysisText}>
                 {analysis.split('\n\n').map((paragraph, i) => (
                   <p key={i}>{paragraph}</p>

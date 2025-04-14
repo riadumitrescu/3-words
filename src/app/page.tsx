@@ -8,7 +8,13 @@ export default function Home() {
   const [name, setName] = useState('');
   const [words, setWords] = useState<string[]>(['', '', '']);
   const [isComplete, setIsComplete] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  // Set mounted state to avoid hydration errors
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Check if all required fields are filled
   useEffect(() => {
@@ -24,25 +30,35 @@ export default function Home() {
   };
 
   const handleSubmit = () => {
-    // Generate a unique ID
-    const userId = crypto.randomUUID();
-    
-    // Save to localStorage with new format
-    localStorage.setItem(`playerData-${userId}`, JSON.stringify({
-      name,
-      words,
-      createdAt: new Date().toISOString()
-    }));
-    
-    // Also save in original format for backward compatibility
-    localStorage.setItem(userId, JSON.stringify({
-      words,
-      createdAt: new Date().toISOString()
-    }));
-    
-    // Redirect to invite page
-    router.push(`/invite/${userId}`);
+    try {
+      // Generate a unique ID
+      const userId = crypto.randomUUID();
+      
+      // Save to localStorage with new format
+      localStorage.setItem(`playerData-${userId}`, JSON.stringify({
+        name,
+        words,
+        createdAt: new Date().toISOString()
+      }));
+      
+      // Also save in original format for backward compatibility
+      localStorage.setItem(userId, JSON.stringify({
+        words,
+        createdAt: new Date().toISOString()
+      }));
+      
+      // Redirect to invite page
+      router.push(`/invite/${userId}`);
+    } catch (err) {
+      console.error('Error saving data:', err);
+      alert('There was an error saving your data. Please try again.');
+    }
   };
+
+  // Only render after mounting to avoid hydration errors
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <main className={styles.main}>
@@ -92,7 +108,7 @@ export default function Home() {
         >
           Continue
         </button>
-      </div>
+    </div>
     </main>
   );
 }
