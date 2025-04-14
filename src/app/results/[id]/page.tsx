@@ -54,41 +54,6 @@ export default function ResultsPage() {
   useEffect(() => {
     if (!mounted || typeof id !== 'string') return;
     
-    // Get player data
-    const storedPlayerData = localStorage.getItem(`playerData-${id}`);
-    if (storedPlayerData) {
-      try {
-        setPlayerData(JSON.parse(storedPlayerData));
-      } catch (e) {
-        console.error('Error parsing playerData:', e);
-      }
-    } else {
-      // Fallback to old format if needed
-      const oldData = localStorage.getItem(id);
-      if (oldData) {
-        try {
-          const parsedData = JSON.parse(oldData);
-          setPlayerData({
-            name: 'You', // Default name if not provided
-            words: parsedData.words,
-            createdAt: parsedData.createdAt
-          });
-        } catch (e) {
-          console.error('Error parsing oldData:', e);
-        }
-      }
-    }
-
-    // Get friend's description data
-    const storedFriendData = localStorage.getItem(`friendWords-${id}`);
-    if (storedFriendData) {
-      try {
-        setFriendData(JSON.parse(storedFriendData));
-      } catch (e) {
-        console.error('Error parsing friendData:', e);
-      }
-    }
-
     // Fetch past entries from Supabase
     const fetchPastEntries = async () => {
       setLoadingEntries(true);
@@ -150,8 +115,83 @@ export default function ResultsPage() {
         setLoadingEntries(false);
       }
     };
-
-    fetchPastEntries();
+    
+    // Main function to get all data
+    const loadAllData = async () => {
+      // Get player data from Supabase first, fall back to localStorage
+      try {
+        console.log('Fetching player data from Supabase for user_id:', id);
+        const { data: playerRecord, error: playerError } = await supabase
+          .from('words')
+          .select('player_name, friend_words, created_at')
+          .eq('user_id', id)
+          .ilike('friend_name', '%Self%')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (playerRecord) {
+          console.log('✅ Player data found in Supabase:', playerRecord);
+          setPlayerData({
+            name: playerRecord.player_name,
+            words: playerRecord.friend_words,
+            createdAt: playerRecord.created_at
+          });
+        } else {
+          console.log('⚠️ Player data not found in Supabase or error occurred:', playerError?.message);
+          // Fall back to localStorage
+          loadPlayerDataFromLocalStorage();
+        }
+      } catch (supabaseError) {
+        console.error('Error fetching player data from Supabase:', supabaseError);
+        // Fall back to localStorage
+        loadPlayerDataFromLocalStorage();
+      }
+      
+      // Get friend's description data
+      const storedFriendData = localStorage.getItem(`friendWords-${id}`);
+      if (storedFriendData) {
+        try {
+          setFriendData(JSON.parse(storedFriendData));
+        } catch (e) {
+          console.error('Error parsing friendData:', e);
+        }
+      }
+      
+      // Fetch past reflections
+      fetchPastEntries();
+    };
+    
+    // Helper function to load player data from localStorage if Supabase fails
+    const loadPlayerDataFromLocalStorage = () => {
+      // Get player data from localStorage
+      const storedPlayerData = localStorage.getItem(`playerData-${id}`);
+      if (storedPlayerData) {
+        try {
+          setPlayerData(JSON.parse(storedPlayerData));
+        } catch (e) {
+          console.error('Error parsing playerData:', e);
+        }
+      } else {
+        // Fallback to old format if needed
+        const oldData = localStorage.getItem(id);
+        if (oldData) {
+          try {
+            const parsedData = JSON.parse(oldData);
+            setPlayerData({
+              name: 'You', // Default name if not provided
+              words: parsedData.words,
+              createdAt: parsedData.createdAt
+            });
+          } catch (e) {
+            console.error('Error parsing oldData:', e);
+          }
+        }
+      }
+    };
+    
+    // Start loading data
+    loadAllData();
   }, [id, mounted]);
 
   useEffect(() => {
@@ -296,6 +336,36 @@ export default function ResultsPage() {
                     processApiResponse(serverText);
                     return;
                   }
+                } else {
+                  // Process error response from our server API route
+                  try {
+                    const errorData = await serverResponse.json();
+                    console.error('❌ Server API route error response:', errorData);
+                    
+                    // Extract user-friendly message if available
+                    if (errorData.userMessage) {
+                      setError(errorData.userMessage);
+                    } else if (errorData.error) {
+                      setError(`AI Analysis Error: ${errorData.error}`);
+                    } else {
+                      setError(`AI Analysis Error (${serverResponse.status}): Please try again later.`);
+                    }
+                    
+                    // Log the detailed error information for debugging
+                    if (errorData.details) {
+                      console.error('📋 Detailed error information:', errorData.details);
+                    }
+                    
+                    // If server says we're rate limited, we might want to wait
+                    if (serverResponse.status === 429 && errorData.details?.retryAfter) {
+                      console.log(`⏱️ Rate limited. Retry after ${errorData.details.retryAfter} seconds`);
+                    }
+                    
+                    generateFallbackAnalysis();
+                    return;
+                  } catch (parseError) {
+                    console.error('❌ Could not parse server error response:', parseError);
+                  }
                 }
                 
                 // If server route also fails, try one more time with gemini-pro via server
@@ -319,9 +389,30 @@ export default function ResultsPage() {
                     processApiResponse(finalText);
                     return;
                   }
+                } else {
+                  // Process error response from our final server API attempt
+                  try {
+                    const finalErrorData = await finalResponse.json();
+                    console.error('❌ Final server API route error response:', finalErrorData);
+                    
+                    // Extract user-friendly message if available
+                    if (finalErrorData.userMessage) {
+                      setError(finalErrorData.userMessage);
+                    } else if (finalErrorData.error) {
+                      setError(`AI Analysis Error: ${finalErrorData.error}`);
+                    }
+                    
+                    // Log the detailed error information for debugging
+                    if (finalErrorData.details) {
+                      console.error('📋 Detailed error information:', finalErrorData.details);
+                    }
+                  } catch (parseError) {
+                    console.error('❌ Could not parse final server error response:', parseError);
+                  }
                 }
               } catch (serverError) {
                 console.error('❌ Server API route error:', serverError);
+                setError('Could not connect to AI service. Please check your internet connection and try again.');
               }
               
               console.log('🔄 All API attempts failed, using fallback analysis');

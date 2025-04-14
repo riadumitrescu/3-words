@@ -30,6 +30,12 @@
    - Improved client error messages with more context about API failures
    - Implemented structured error response objects with message, status code, and details
    - Added error response content from Gemini API for better debugging
+   - Enhanced client-side error handling for server API route responses
+   - Added proper parsing of error data returned from the server API route
+   - Implemented extraction of user-friendly error messages from server responses
+   - Added specialized handling for rate-limiting scenarios with retry information
+   - Improved error UX with specific error messages based on response type
+   - Enhanced fallback behavior to ensure analysis is always provided even on failure
 
 10. Database Integration with Supabase
     - Connected to Supabase for persistent storage of friend reflections
@@ -55,6 +61,12 @@
     - Improved accessibility by adding proper aria labels to input fields
     - Made the copy-to-clipboard functionality more visible and user-friendly
     - Ensures consistent, production-ready links regardless of development environment
+    - Implemented cross-device link sharing by storing player data in Supabase
+    - Added player_name field to Supabase schema to properly identify original player
+    - Updated all pages to fetch player data from Supabase instead of localStorage
+    - Implemented localStorage fallback for offline functionality
+    - Fixed the "User not found" issue when sharing links across devices
+    - Added proper loading states when fetching data from Supabase
 
 12. Added localStorage fallback for reflections storage to ensure data persistence when offline or if Supabase is unavailable
 

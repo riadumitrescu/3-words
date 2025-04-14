@@ -76,6 +76,7 @@ export default function Home() {
             .insert([
               { 
                 user_id: userId, 
+                player_name: name, // Store the player's name as a separate field
                 friend_name: `${name} (Self)`, // Mark this as the player's own words
                 friend_words: words
                 // Do NOT include id or created_at - let Supabase generate these

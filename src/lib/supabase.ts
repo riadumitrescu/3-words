@@ -11,6 +11,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // The words table schema is as follows:
 // - id: uuid, primary key, auto-generated
 // - user_id: text, the ID of the player/user
+// - player_name: text, the name of the original player (added field)
 // - friend_name: text, the name of the friend who provided the words
 // - friend_words: text[], array of 3 words the friend chose
 // - created_at: timestamp, when the entry was submitted (default to now())

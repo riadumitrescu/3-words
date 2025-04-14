@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
+import supabase from '@/lib/supabase';
 
 type PlayerData = {
   name?: string;
@@ -19,6 +20,7 @@ export default function InvitePage() {
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const [inviteLink, setInviteLink] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Set mounted state after component mounts to prevent hydration errors
   useEffect(() => {
@@ -29,18 +31,44 @@ export default function InvitePage() {
     // Only run on client-side after mounting
     if (!mounted) return;
     
-    // Get player data from localStorage
-    if (typeof userId === 'string') {
+    const fetchPlayerData = async () => {
+      if (typeof userId !== 'string') return;
+      
+      setLoading(true);
+      
       try {
-        // Try to get data in new format first
-        const storedPlayerData = localStorage.getItem(`playerData-${userId}`);
-        if (storedPlayerData) {
-          setPlayerData(JSON.parse(storedPlayerData));
+        // First try to get data from Supabase (primary source)
+        const { data, error } = await supabase
+          .from('words')
+          .select('player_name, friend_words, created_at')
+          .eq('user_id', userId)
+          .ilike('friend_name', '%Self%') // Find the user's self-description using ILIKE
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (data) {
+          console.log('✅ Player data fetched from Supabase:', data);
+          // Format the data to match our expected structure
+          setPlayerData({
+            name: data.player_name,
+            words: data.friend_words,
+            createdAt: data.created_at
+          });
         } else {
-          // Fallback to old format if needed
-          const oldData = localStorage.getItem(userId);
-          if (oldData) {
-            setPlayerData(JSON.parse(oldData));
+          console.log('⚠️ Player data not found in Supabase, trying localStorage...');
+          // Fallback to localStorage if Supabase doesn't have the data
+          
+          // Try to get data in new format first
+          const storedPlayerData = localStorage.getItem(`playerData-${userId}`);
+          if (storedPlayerData) {
+            setPlayerData(JSON.parse(storedPlayerData));
+          } else {
+            // Fallback to old format if needed
+            const oldData = localStorage.getItem(userId);
+            if (oldData) {
+              setPlayerData(JSON.parse(oldData));
+            }
           }
         }
         
@@ -48,8 +76,12 @@ export default function InvitePage() {
         setInviteLink(`${PRODUCTION_URL}/play/${userId}`);
       } catch (err) {
         console.error('Error loading player data:', err);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+    
+    fetchPlayerData();
   }, [userId, mounted]);
 
   const copyToClipboard = () => {
@@ -79,6 +111,17 @@ export default function InvitePage() {
   // Don't render during SSR to avoid hydration errors
   if (!mounted) {
     return null;
+  }
+
+  if (loading) {
+    return (
+      <main className={styles.main}>
+        <div className={styles.container}>
+          <h1 className={styles.title}>Loading...</h1>
+          <div className={styles.loadingSpinner}></div>
+        </div>
+      </main>
+    );
   }
 
   if (!playerData) {
