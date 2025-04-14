@@ -19,7 +19,8 @@ type FriendData = {
 // API key hardcoded for public use - This is intentionally exposed for educational purposes
 // In a production environment, you would use environment variables (.env.local) and server-side API calls
 const GEMINI_API_KEY = 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
-const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+// Update to gemini-1.0-pro model which should be more available
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -79,126 +80,100 @@ export default function ResultsPage() {
   useEffect(() => {
     // Generate analysis when both data sets are available
     const analyzeWords = async () => {
-      if (!playerData || !friendData || !mounted) return;
+      console.log("🧠 mounted:", mounted);
+      console.log("📦 playerData:", playerData);
+      console.log("🎯 friendData:", friendData);
+      
+      if (!playerData || !friendData || !mounted) {
+        console.log("⛔ Not all required data is available, skipping analysis");
+        return;
+      }
       
       try {
         setLoading(true);
+        console.log("🔄 Starting analysis process for:", playerData.name);
         
         // Send to Gemini API for analysis with updated prompt
+        // Shorter prompt for better reliability
         const prompt = `
-        I'm analyzing a personality game where:
-        - A person named ${playerData.name} described themselves with these 3 words: [${playerData.words.join(', ')}]
-        - Their friend described them with these 3 words: [${friendData.words.join(', ')}]
+        A person named ${playerData.name} described themselves as: [${playerData.words.join(', ')}]. 
+        Their friend described them as: [${friendData.words.join(', ')}]. 
         
-        Please compare these word sets and provide:
-        1. A thoughtful analysis of the overlaps, contrasts, and what they reveal about self-perception vs. external perception
-        2. Any interesting patterns or psychological insights about how ${playerData.name} sees themselves vs. how others see them
-        3. Find subtle connections between seemingly different words (e.g., "creative" and "unconventional" might have related meanings)
-        4. What might these differences reveal about blind spots or hidden strengths?
+        What does this tell us about the difference between self-perception and external perception?
+        Find connections between similar words. Analyze what this reveals about how ${playerData.name} sees themselves vs how others see them.
         
-        Make your response engaging, insightful, and personally meaningful. Be specific to these exact words.
-        
-        End your analysis with: "Score: X%" where X is your assessment of how aligned these perceptions are (0-100%).
+        Make your response engaging and insightful.
+        End with: Score: XX% (where XX is your assessment of alignment from 0-100).
         `;
 
-        console.log('Sending request to Gemini API with prompt:', prompt);
+        console.log('🔍 Building request with prompt length:', prompt.length);
         
-        try {
-          // Format the request payload
-          const requestPayload = {
-            contents: [
-              {
-                parts: [
-                  { text: prompt }
-                ]
-              }
-            ]
-          };
-          
-          console.log('Using Gemini API endpoint:', GEMINI_ENDPOINT);
-          console.log('Using API key (first 6 chars):', GEMINI_API_KEY.substring(0, 6) + '...');
-          console.log('Request payload:', JSON.stringify(requestPayload));
-          
-          // Send the request to Gemini API
-          const response = await fetch(
-            `${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`,
+        // Format the request payload
+        const requestPayload = {
+          contents: [
             {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(requestPayload)
+              parts: [
+                { text: prompt }
+              ]
             }
-          );
+          ]
+        };
+        
+        // SERVER API ROUTE STRATEGY
+        // Going all-in with the server-side route which is most reliable
+        console.log('🔄 Using server API route with gemini-pro model...');
+        try {
+          console.log('📤 Sending request to server API route...');
+          const serverResponse = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'gemini-pro', // Our best hope for a working model
+              contents: requestPayload.contents
+            })
+          });
           
-          console.log('Gemini API response status:', response.status);
+          console.log('📥 Server API route response status:', serverResponse.status);
           
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API response not OK (v1beta):', response.status, errorText);
+          if (serverResponse.ok) {
+            const serverData = await serverResponse.json();
+            console.log('✅ Server API route response received');
             
-            // Attempt alternative model if available
-            console.log('Attempting fallback to alternative model...');
-            const fallbackResponse = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestPayload)
-              }
-            );
-            
-            console.log('Fallback response status:', fallbackResponse.status);
-            
-            if (!fallbackResponse.ok) {
-              const fallbackErrorText = await fallbackResponse.text();
-              console.error('Fallback API response not OK:', fallbackResponse.status, fallbackErrorText);
-              console.log('API key issue detected, using fallback analysis');
-              generateFallbackAnalysis();
-              return;
+            // Check if there's an error field in the response
+            if (serverData.error) {
+              console.error('❌ Error in server response:', serverData.error);
+              throw new Error(serverData.error.message || 'Unknown server error');
             }
             
-            // Process fallback response
-            const fallbackData = await fallbackResponse.json();
-            console.log('Fallback Gemini API response:', fallbackData);
+            const serverText = serverData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            console.log('📝 Response text received from server, length:', serverText.length);
             
-            const fallbackText = fallbackData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            
-            if (fallbackText) {
-              processApiResponse(fallbackText);
+            if (serverText) {
+              console.log('✅ Processing valid server API response text');
+              processApiResponse(serverText);
+              return; // Exit early with successful response
             } else {
-              console.error('No valid response from fallback API:', fallbackData);
-              generateFallbackAnalysis();
+              console.error('❌ Empty response text from server');
+              throw new Error('Empty response from server');
             }
-            return;
-          }
-          
-          const data = await response.json();
-          console.log('Gemini API response:', data);
-          
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          console.log('Extracted text from API response:', text ? text.substring(0, 100) + '...' : 'None');
-          
-          if (text) {
-            processApiResponse(text);
-          } else if (data.error) {
-            console.error('Gemini API error:', data.error);
-            generateFallbackAnalysis();
           } else {
-            console.error('No valid response from Gemini API:', data);
-            generateFallbackAnalysis();
+            const errorText = await serverResponse.text();
+            console.error('❌ Server API route error:', serverResponse.status, errorText);
+            throw new Error(`Server API error: ${serverResponse.status}`);
           }
-        } catch (apiError) {
-          console.error('Error with API request:', apiError);
+        } catch (serverError) {
+          console.error('❌ Error with server API request:', serverError);
+          console.log('⚠️ Server API failed, using fallback analysis');
           generateFallbackAnalysis();
+        } finally {
+          setLoading(false);
         }
       } catch (err) {
-        console.error('Error analyzing words:', err);
+        console.error('❌ Error analyzing words:', err);
         setError('Could not generate analysis. Please try again.');
         generateFallbackAnalysis();
-      } finally {
         setLoading(false);
       }
     };
