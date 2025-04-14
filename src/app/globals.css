@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --font-serif: 'Georgia', serif;
@@ -17,6 +19,10 @@
   --space-md: 2rem;
   --space-lg: 3rem;
   --space-xl: 5rem;
+
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -81,4 +87,18 @@ button, input {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors;
+  }
+  
+  .container {
+    @apply max-w-5xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .card {
+    @apply bg-white p-6 rounded-xl shadow-md;
+  }
 }
