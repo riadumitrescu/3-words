@@ -19,6 +19,7 @@ type FriendData = {
 // API key hardcoded for public use - This is intentionally exposed for educational purposes
 // In a production environment, you would use environment variables (.env.local) and server-side API calls
 const GEMINI_API_KEY = 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -103,33 +104,74 @@ export default function ResultsPage() {
         console.log('Sending request to Gemini API with prompt:', prompt);
         
         try {
-          // Try v1beta endpoint with the updated model
+          // Format the request payload
+          const requestPayload = {
+            contents: [
+              {
+                parts: [
+                  { text: prompt }
+                ]
+              }
+            ]
+          };
+          
+          console.log('Using Gemini API endpoint:', GEMINI_ENDPOINT);
+          console.log('Using API key (first 6 chars):', GEMINI_API_KEY.substring(0, 6) + '...');
+          console.log('Request payload:', JSON.stringify(requestPayload));
+          
+          // Send the request to Gemini API
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            `${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`,
             {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [
-                      { text: prompt }
-                    ]
-                  }
-                ]
-              })
+              body: JSON.stringify(requestPayload)
             }
           );
+          
+          console.log('Gemini API response status:', response.status);
           
           if (!response.ok) {
             const errorText = await response.text();
             console.error('API response not OK (v1beta):', response.status, errorText);
             
-            // If API key issues, use the fallback analysis
-            console.log('API key issue detected, using fallback analysis');
-            generateFallbackAnalysis();
+            // Attempt alternative model if available
+            console.log('Attempting fallback to alternative model...');
+            const fallbackResponse = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestPayload)
+              }
+            );
+            
+            console.log('Fallback response status:', fallbackResponse.status);
+            
+            if (!fallbackResponse.ok) {
+              const fallbackErrorText = await fallbackResponse.text();
+              console.error('Fallback API response not OK:', fallbackResponse.status, fallbackErrorText);
+              console.log('API key issue detected, using fallback analysis');
+              generateFallbackAnalysis();
+              return;
+            }
+            
+            // Process fallback response
+            const fallbackData = await fallbackResponse.json();
+            console.log('Fallback Gemini API response:', fallbackData);
+            
+            const fallbackText = fallbackData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            
+            if (fallbackText) {
+              processApiResponse(fallbackText);
+            } else {
+              console.error('No valid response from fallback API:', fallbackData);
+              generateFallbackAnalysis();
+            }
             return;
           }
           
@@ -137,6 +179,7 @@ export default function ResultsPage() {
           console.log('Gemini API response:', data);
           
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          console.log('Extracted text from API response:', text ? text.substring(0, 100) + '...' : 'None');
           
           if (text) {
             processApiResponse(text);
