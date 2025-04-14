@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import './globals.css';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "3 Words - Know Yourself, Through Others",
-  description: "A personality-based game that helps you understand how others perceive you",
+  title: '3 Words - Personality Game',
+  description: 'See how others perceive you with just 3 words',
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning={true}>
         {children}
       </body>
     </html>

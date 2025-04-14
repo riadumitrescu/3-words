@@ -85,10 +85,19 @@ export default function ResultsPage() {
         
         // Send to Gemini API for analysis with updated prompt
         const prompt = `
-        A person named ${playerData.name} described themselves with: [${playerData.words.join(', ')}]. 
-        Their friend described them with: [${friendData.words.join(', ')}]. 
-        Please compare them, find any overlapping or similar meanings, and return a percentage match from 0–100. 
-        Include a 2–3 sentence reflection, and finish with: Score: ##%
+        I'm analyzing a personality game where:
+        - A person named ${playerData.name} described themselves with these 3 words: [${playerData.words.join(', ')}]
+        - Their friend described them with these 3 words: [${friendData.words.join(', ')}]
+        
+        Please compare these word sets and provide:
+        1. A thoughtful analysis of the overlaps, contrasts, and what they reveal about self-perception vs. external perception
+        2. Any interesting patterns or psychological insights about how ${playerData.name} sees themselves vs. how others see them
+        3. Find subtle connections between seemingly different words (e.g., "creative" and "unconventional" might have related meanings)
+        4. What might these differences reveal about blind spots or hidden strengths?
+        
+        Make your response engaging, insightful, and personally meaningful. Be specific to these exact words.
+        
+        End your analysis with: "Score: X%" where X is your assessment of how aligned these perceptions are (0-100%).
         `;
 
         console.log('Sending request to Gemini API with prompt:', prompt);
@@ -196,30 +205,113 @@ export default function ResultsPage() {
     const generateFallbackAnalysis = () => {
       if (!playerData || !friendData) return;
       
-      // Check for exact word matches
+      // Check for exact word matches and semantically similar words
       const exactMatches = playerData.words.filter(word => 
         friendData.words.some(friendWord => 
           friendWord.toLowerCase() === word.toLowerCase()
         )
       );
       
-      const matchCount = exactMatches.length;
-      const matchPercentage = Math.round((matchCount / 3) * 100);
+      // Simple semantic groupings to find similar words
+      const semanticGroups: string[][] = [
+        // Personality traits
+        ['kind', 'caring', 'compassionate', 'generous', 'empathetic', 'loving', 'warm', 'gentle', 'supportive'],
+        ['intelligent', 'smart', 'clever', 'bright', 'brilliant', 'wise', 'sharp', 'analytical', 'thoughtful'],
+        ['creative', 'artistic', 'innovative', 'imaginative', 'original', 'unconventional'],
+        ['funny', 'humorous', 'witty', 'comedic', 'entertaining', 'amusing', 'playful'],
+        ['determined', 'persistent', 'driven', 'focused', 'dedicated', 'committed', 'ambitious', 'motivated'],
+        ['confident', 'self-assured', 'bold', 'assertive', 'strong', 'courageous', 'brave'],
+        ['calm', 'peaceful', 'relaxed', 'composed', 'tranquil', 'serene', 'laid-back', 'patient'],
+        ['honest', 'truthful', 'genuine', 'authentic', 'sincere', 'transparent', 'real', 'trustworthy'],
+        ['organized', 'methodical', 'systematic', 'orderly', 'structured', 'neat', 'tidy'],
+        ['loyal', 'faithful', 'devoted', 'dependable', 'reliable', 'trustworthy', 'committed'],
+        ['energetic', 'lively', 'vibrant', 'dynamic', 'active', 'spirited', 'enthusiastic', 'passionate'],
+        ['shy', 'reserved', 'quiet', 'introverted', 'private', 'withdrawn', 'timid'],
+        ['outgoing', 'extroverted', 'sociable', 'friendly', 'gregarious', 'cheerful', 'approachable'],
+      ];
       
-      // Generate analysis text based on match percentage
-      let analysisText = '';
+      // Find semantically similar words
+      interface WordPair {
+        playerWord: string;
+        friendWord: string;
+        group: string[];
+      }
+      
+      const similarPairs: WordPair[] = [];
+      playerData.words.forEach(playerWord => {
+        friendData.words.forEach(friendWord => {
+          if (playerWord.toLowerCase() === friendWord.toLowerCase()) return; // Skip exact matches
+          
+          // Check if words appear in the same semantic group
+          const matchingGroup = semanticGroups.find(group => 
+            group.includes(playerWord.toLowerCase()) && group.includes(friendWord.toLowerCase())
+          );
+          
+          if (matchingGroup) {
+            similarPairs.push({
+              playerWord, 
+              friendWord,
+              group: matchingGroup
+            });
+          }
+        });
+      });
+      
+      const exactMatchCount = exactMatches.length;
+      const similarMatchCount = Math.min(3 - exactMatchCount, similarPairs.length); // Cap at remaining words
+      const totalMatchScore = exactMatchCount + (similarMatchCount * 0.5); // Similar words count as half
+      const matchPercentage = Math.round((totalMatchScore / 3) * 100);
+      
+      // Generate personalized analysis text
       const playerName = playerData.name;
+      let analysisText = '';
       
-      if (matchPercentage === 100) {
-        analysisText = `Perfect match! ${playerName} and their friend have identical perceptions. All three words match exactly, showing complete alignment in how ${playerName} sees themselves and how others perceive them.`;
-      } else if (matchPercentage >= 67) {
-        analysisText = `Strong alignment! ${playerName} and their friend share similar perceptions. There's significant overlap in the chosen words, suggesting that ${playerName}'s self-image largely aligns with how others see them.`;
-      } else if (matchPercentage >= 33) {
-        analysisText = `Moderate alignment. ${playerName} and their friend have some overlap in perception, but also differences. This suggests that ${playerName} has some self-awareness, but there are aspects others see differently.`;
-      } else if (matchPercentage > 0) {
-        analysisText = `Limited alignment. ${playerName} and their friend have minimal overlap in their chosen words. This suggests a disconnect between self-perception and how others see ${playerName}.`;
+      // Mention exact matches
+      if (exactMatches.length > 0) {
+        if (exactMatches.length === 1) {
+          analysisText += `Both ${playerName} and their friend used the word "${exactMatches[0]}" to describe ${playerName}. This shows clear alignment in how this quality is perceived. `;
+        } else if (exactMatches.length === 2) {
+          analysisText += `There's strong agreement between ${playerName} and their friend, with both using the words "${exactMatches[0]}" and "${exactMatches[1]}" to describe ${playerName}. This suggests these traits are clearly visible to both ${playerName} themselves and to others. `;
+        } else if (exactMatches.length === 3) {
+          analysisText += `Remarkably, ${playerName} and their friend chose exactly the same three words! This shows exceptional alignment between self-perception and how others see ${playerName}. `;
+        }
+      }
+      
+      // Mention similar words
+      if (similarPairs.length > 0 && similarMatchCount > 0) {
+        analysisText += `There are interesting connections between their word choices. `;
+        
+        similarPairs.slice(0, similarMatchCount).forEach((pair, index) => {
+          analysisText += `${playerName}'s word "${pair.playerWord}" and their friend's word "${pair.friendWord}" share similar meanings, suggesting alignment in perception though expressed differently. `;
+        });
+      }
+      
+      // Add insight about differences
+      const playerUnique = playerData.words.filter(word => 
+        !exactMatches.includes(word) && 
+        !similarPairs.slice(0, similarMatchCount).some(pair => pair.playerWord === word)
+      );
+      
+      const friendUnique = friendData.words.filter(word => 
+        !exactMatches.includes(word) && 
+        !similarPairs.slice(0, similarMatchCount).some(pair => pair.friendWord === word)
+      );
+      
+      if (playerUnique.length > 0 && friendUnique.length > 0) {
+        analysisText += `Interestingly, while ${playerName} identifies with "${playerUnique.join(', ')}", their friend sees qualities like "${friendUnique.join(', ')}". This difference reveals how we sometimes emphasize different aspects of ourselves than others notice. These contrasting perspectives offer valuable insights into both ${playerName}'s self-image and how they present to others. `;
+      }
+      
+      // Add conclusion based on match percentage
+      if (matchPercentage >= 85) {
+        analysisText += `Overall, there's exceptional alignment between ${playerName}'s self-perception and how their friend sees them, suggesting strong self-awareness and consistent expression of their authentic personality.`;
+      } else if (matchPercentage >= 65) {
+        analysisText += `There's significant overlap between how ${playerName} sees themselves and how they're perceived by others, with some nuanced differences that add depth to their personality profile.`;
+      } else if (matchPercentage >= 40) {
+        analysisText += `While there's moderate alignment in perception, the differences highlight how we all contain multifaceted aspects that may be more visible either to ourselves or to others, but not both.`;
+      } else if (matchPercentage >= 20) {
+        analysisText += `The notable differences between self-perception and external perception suggest ${playerName} might present differently than they see themselves, or may have qualities their friend recognizes that ${playerName} hasn't fully acknowledged.`;
       } else {
-        analysisText = `No direct matches found between ${playerName}'s self-description and their friend's perception. This highlights how differently we can see ourselves compared to how others perceive us. These differences offer valuable opportunities for self-reflection.`;
+        analysisText += `The significant contrast between ${playerName}'s self-description and their friend's perception creates an opportunity for deeper self-reflection and conversation about how we see ourselves versus how others experience us.`;
       }
       
       setAnalysis(analysisText);

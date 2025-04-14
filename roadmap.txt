@@ -66,6 +66,9 @@
    - Implemented graceful degradation when Gemini API is unavailable
    - Updated to use Gemini 1.5 Flash model with a valid API key
    - Removed unused Tailwind CSS import from globals.css to fix build error
+   - Enhanced Gemini API prompt for more insightful psychological analysis
+   - Upgraded fallback analysis with semantic word matching and personalized insights
+   - Added suppressHydrationWarning to RootLayout to prevent browser extension conflicts
 
 ## App Structure
 - `/` - Home page where users enter their name and 3 self-descriptive words
