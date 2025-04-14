@@ -81,6 +81,32 @@
 
 12. Added localStorage fallback for reflections storage to ensure data persistence when offline or if Supabase is unavailable
 
+13. Enhanced Reflection Features
+    - Added match_score and analysis columns to the words table in Supabase
+    - Integrated Gemini API analysis into the play page submission flow
+    - Added real-time match score calculation based on word comparison
+    - Implemented persistent storage of analysis results in Supabase
+    - Added clickable past reflections in the results page
+    - Enhanced reflection cards with match score display
+    - Added query parameter support for viewing specific friend reflections
+    - Implemented smooth transitions between different friend reflections
+    - Maintained consistent UI/UX when viewing different reflections
+    - Added loading states and error handling for reflection browsing
+    - Improved data fetching with Supabase as primary source and localStorage as fallback
+    - Created a more interactive and engaging reflection browsing experience
+    - Redesigned reflection cards with cleaner, more modern aesthetic
+    - Added proper "(Self)" designation to distinguish self-reflections
+    - Enhanced Past Reflections section with improved typography and spacing
+    - Updated reflection card styling with subtle shadows and hover effects
+    - Improved grid layout for better responsiveness across device sizes
+    - Streamlined reflection card content to focus on essential information
+    - Added visual hierarchy with clear font weights and sizing
+    - Enhanced the reflection date formatting for better readability
+    - Fixed schema issue by adding match_score and analysis columns to Supabase table
+    - Updated Supabase setup documentation with complete column requirements
+    - Created SQL migration script to add missing columns to existing tables
+    - Ensured consistent display of match percentages in reflection cards
+
 ## App Structure
 - `/` - Home page where users enter their name and 3 self-descriptive words
 - `/invite/[userId]` - Page to invite friends after entering words

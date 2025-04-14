@@ -25,6 +25,8 @@ type WordEntry = {
   friend_name: string;
   friend_words: string[];
   created_at: string;
+  match_score: number; // Optional match score field
+  analysis: string; // Optional analysis field
 };
 
 // API key hardcoded for public use - This is intentionally exposed for educational purposes
@@ -43,6 +45,8 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loadingEntries, setLoadingEntries] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [selectedFriendName, setSelectedFriendName] = useState<string | null>(null);
+  const [isLoadingFriendData, setIsLoadingFriendData] = useState(false);
   const analysisRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -50,6 +54,112 @@ export default function ResultsPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Parse query parameters to get friend name
+  useEffect(() => {
+    if (!mounted) return;
+    
+    // Get the friend parameter from the URL
+    const url = new URL(window.location.href);
+    const friendParam = url.searchParams.get('friend');
+    
+    if (friendParam) {
+      setSelectedFriendName(decodeURIComponent(friendParam));
+    }
+  }, [mounted]);
+
+  // Fetch specific friend data when selected
+  useEffect(() => {
+    if (!mounted || !selectedFriendName || typeof id !== 'string') return;
+    
+    const loadSelectedFriendData = async () => {
+      setIsLoadingFriendData(true);
+      
+      try {
+        console.log(`🔍 Loading data for friend: ${selectedFriendName}`);
+        
+        // Try to get from Supabase first
+        const { data, error } = await supabase
+          .from('words')
+          .select('*')
+          .eq('user_id', id)
+          .eq('friend_name', selectedFriendName)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (data) {
+          console.log('✅ Found friend data in Supabase:', data);
+          
+          // Update friend data state
+          setFriendData({
+            name: data.friend_name,
+            words: data.friend_words,
+            createdAt: data.created_at
+          });
+          
+          // If the entry has analysis and match_score, use them
+          if (data.analysis) {
+            setAnalysis(data.analysis);
+          }
+          
+          if (data.match_score) {
+            setScore(data.match_score.toString());
+          }
+          
+          setLoading(false);
+        } else {
+          console.warn('⚠️ Friend data not found in Supabase:', error);
+          
+          // Try to find in localStorage as fallback
+          const localEntriesString = localStorage.getItem(`allWords-${id}`);
+          if (localEntriesString) {
+            try {
+              const localEntries = JSON.parse(localEntriesString);
+              const matchingEntry = localEntries.find(
+                (entry: any) => entry.friend_name === selectedFriendName
+              );
+              
+              if (matchingEntry) {
+                console.log('✅ Found friend data in localStorage:', matchingEntry);
+                
+                setFriendData({
+                  name: matchingEntry.friend_name,
+                  words: matchingEntry.friend_words,
+                  createdAt: matchingEntry.created_at
+                });
+                
+                if (matchingEntry.analysis) {
+                  setAnalysis(matchingEntry.analysis);
+                }
+                
+                if (matchingEntry.match_score) {
+                  setScore(matchingEntry.match_score.toString());
+                }
+                
+                setLoading(false);
+              } else {
+                console.error('❌ Friend not found in localStorage either');
+                setError(`Could not find data for ${selectedFriendName}`);
+              }
+            } catch (parseError) {
+              console.error('Error parsing localStorage entries:', parseError);
+              setError('Error loading friend data');
+            }
+          } else {
+            setError(`Could not find data for ${selectedFriendName}`);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading selected friend data:', err);
+        setError('Error loading friend data');
+      } finally {
+        setIsLoadingFriendData(false);
+      }
+    };
+    
+    loadSelectedFriendData();
+  }, [id, selectedFriendName, mounted]);
 
   useEffect(() => {
     if (!mounted || typeof id !== 'string') return;
@@ -82,6 +192,7 @@ export default function ResultsPage() {
           .from('words')
           .select('*')
           .eq('user_id', id)
+          .not('friend_name', 'ilike', '%(Self)%') // Exclude self entries
           .order('created_at', { ascending: false });
         
         if (error) {
@@ -118,6 +229,9 @@ export default function ResultsPage() {
     
     // Main function to get all data
     const loadAllData = async () => {
+      // Skip loading player/friend data if we're loading a specific friend
+      if (selectedFriendName) return;
+      
       // Get player data from Supabase first, fall back to localStorage
       try {
         console.log('Fetching player data from Supabase for user_id:', id);
@@ -157,9 +271,6 @@ export default function ResultsPage() {
           console.error('Error parsing friendData:', e);
         }
       }
-      
-      // Fetch past reflections
-      fetchPastEntries();
     };
     
     // Helper function to load player data from localStorage if Supabase fails
@@ -190,9 +301,14 @@ export default function ResultsPage() {
       }
     };
     
-    // Start loading data
-    loadAllData();
-  }, [id, mounted]);
+    // Always fetch past entries
+    fetchPastEntries();
+    
+    // Only load player/friend data if not loading a specific friend
+    if (!selectedFriendName) {
+      loadAllData();
+    }
+  }, [id, mounted, selectedFriendName]);
 
   useEffect(() => {
     // Generate analysis when both data sets are available
@@ -669,6 +785,14 @@ export default function ResultsPage() {
     );
   }
 
+  // Handle click on a past reflection
+  const handleReflectionClick = (friendName: string) => {
+    if (typeof id === 'string') {
+      const url = `/results/${id}?friend=${encodeURIComponent(friendName)}`;
+      router.push(url);
+    }
+  };
+
   return (
     <main className={styles.main}>
       <div className={styles.container}>
@@ -740,7 +864,7 @@ export default function ResultsPage() {
         
         {/* Past Reflections Section */}
         <div className={styles.pastReflectionsSection}>
-          <h2 className={styles.pastReflectionsTitle}>Past Reflections</h2>
+          <h2 className={styles.pastReflectionsTitle}>What others said</h2>
           
           {loadingEntries ? (
             <div className={styles.loadingContainer}>
@@ -750,14 +874,27 @@ export default function ResultsPage() {
           ) : pastEntries.length > 0 ? (
             <div className={styles.reflectionsList}>
               {pastEntries.map((entry) => (
-                <div key={entry.id} className={styles.reflectionCard}>
-                  <h3 className={styles.reflectionName}>{entry.friend_name}</h3>
+                <div 
+                  key={entry.id} 
+                  className={`${styles.reflectionCard} ${selectedFriendName === entry.friend_name ? styles.selectedReflection : ''}`}
+                  onClick={() => handleReflectionClick(entry.friend_name)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View ${entry.friend_name}'s reflection`}
+                >
+                  <h3 className={styles.reflectionName}>
+                    {entry.friend_name}
+                    {entry.friend_name === playerData.name && " (Self)"}
+                  </h3>
                   <div className={styles.reflectionWords}>
                     {entry.friend_words.map((word, idx) => (
                       <div key={idx} className={styles.reflectionWordChip}>
                         {word}
                       </div>
                     ))}
+                  </div>
+                  <div className={styles.reflectionScore}>
+                    <span className={styles.scoreValue}>{entry.match_score}%</span>
                   </div>
                   <div className={styles.reflectionDate}>
                     {new Date(entry.created_at).toLocaleDateString()}
@@ -772,7 +909,7 @@ export default function ResultsPage() {
         
         <div className={styles.actions}>
           <Link href="/" className={styles.button}>
-            Start Over
+            Try for yourself
           </Link>
         </div>
       </div>
