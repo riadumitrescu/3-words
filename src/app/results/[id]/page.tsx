@@ -17,7 +17,7 @@ type FriendData = {
 };
 
 // Keep API key in environment variable for security
-const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_KEY || 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
+const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
 
 export default function ResultsPage() {
   const { id } = useParams();
