@@ -17,7 +17,7 @@ type FriendData = {
 };
 
 // Keep API key in environment variable for security
-const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDxvCyONeV1_BNVKiVBslJUAjO1Kon4Yq8';
+const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -93,19 +93,19 @@ export default function ResultsPage() {
         console.log('Sending request to Gemini API with prompt:', prompt);
         
         try {
-          // Try v1beta endpoint with the updated model
+          // Try v1beta endpoint with the specified model
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
             {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 contents: [
                   {
                     parts: [
-                      { text: prompt }
+                      {
+                        text: prompt
+                      }
                     ]
                   }
                 ]

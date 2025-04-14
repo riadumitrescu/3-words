@@ -64,8 +64,8 @@
    - Improved user-facing error messages to be more friendly
    - Added smart fallback for API failures with local word comparison
    - Implemented graceful degradation when Gemini API is unavailable
-   - Updated to use Gemini 1.5 Flash model with a valid API key
    - Standardized environment variable naming for Vercel deployment
+   - Applied exact recommended Gemini API format for API requests
 
 ## App Structure
 - `/` - Home page where users enter their name and 3 self-descriptive words
